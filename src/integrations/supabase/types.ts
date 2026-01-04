@@ -14,7 +14,125 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      beyblade_catalog: {
+        Row: {
+          components: Json | null
+          created_at: string
+          description: string | null
+          generation: string
+          id: string
+          image_url: string | null
+          name: string
+          name_hasbro: string | null
+          series: string
+          specs: Json | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          components?: Json | null
+          created_at?: string
+          description?: string | null
+          generation: string
+          id?: string
+          image_url?: string | null
+          name: string
+          name_hasbro?: string | null
+          series: string
+          specs?: Json | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          components?: Json | null
+          created_at?: string
+          description?: string | null
+          generation?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          name_hasbro?: string | null
+          series?: string
+          specs?: Json | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_collection: {
+        Row: {
+          acquired_at: string | null
+          beyblade_id: string | null
+          condition: string | null
+          created_at: string
+          custom_name: string | null
+          id: string
+          notes: string | null
+          photo_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          acquired_at?: string | null
+          beyblade_id?: string | null
+          condition?: string | null
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          acquired_at?: string | null
+          beyblade_id?: string | null
+          condition?: string | null
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_collection_beyblade_id_fkey"
+            columns: ["beyblade_id"]
+            isOneToOne: false
+            referencedRelation: "beyblade_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
