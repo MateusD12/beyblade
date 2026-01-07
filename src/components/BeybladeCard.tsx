@@ -69,21 +69,21 @@ export function BeybladeCard({ beyblade, photoUrl, onClick }: BeybladeCardProps)
         {specs && (
           <div className="flex gap-4 text-xs">
             {specs.attack && (
-              <div className="flex items-center gap-1">
-                <Target className="w-3 h-3 text-red-500" />
-                <span>{specs.attack}</span>
+              <div className="flex items-center gap-1 text-red-500">
+                <Target className="w-3 h-3" />
+                <span className="font-medium">{specs.attack}</span>
               </div>
             )}
             {specs.defense && (
-              <div className="flex items-center gap-1">
-                <Shield className="w-3 h-3 text-blue-500" />
-                <span>{specs.defense}</span>
+              <div className="flex items-center gap-1 text-blue-500">
+                <Shield className="w-3 h-3" />
+                <span className="font-medium">{specs.defense}</span>
               </div>
             )}
             {specs.stamina && (
-              <div className="flex items-center gap-1">
-                <Zap className="w-3 h-3 text-green-500" />
-                <span>{specs.stamina}</span>
+              <div className="flex items-center gap-1 text-green-500">
+                <Zap className="w-3 h-3" />
+                <span className="font-medium">{specs.stamina}</span>
               </div>
             )}
           </div>
