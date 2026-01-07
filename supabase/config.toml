@@ -2,3 +2,9 @@ project_id = "gcsnlxedyrlusleskjks"
 
 [functions.identify-beyblade]
 verify_jwt = false
+
+[functions.search-beyblade]
+verify_jwt = false
+
+[functions.fetch-beyblade-details]
+verify_jwt = false
