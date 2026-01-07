@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TypeBadge } from '@/components/TypeBadge';
 import { IdentifyResponse } from '@/types/beyblade';
-import { Check, X, Target, Shield, Zap, Layers } from 'lucide-react';
+import { Check, X, Target, Shield, Zap, Layers, ExternalLink } from 'lucide-react';
 
 interface BeybladeIdentifyResultProps {
   result: IdentifyResponse;
@@ -38,6 +38,11 @@ export function BeybladeIdentifyResult({
     );
   }
 
+  // Get component name (supports both Burst and X naming)
+  const getBladeComponent = () => result.components?.blade || result.components?.layer;
+  const getRatchetComponent = () => result.components?.ratchet || result.components?.disk;
+  const getBitComponent = () => result.components?.bit || result.components?.driver;
+
   return (
     <Card className="border-primary/50 bg-primary/5">
       <CardHeader className="pb-3">
@@ -55,6 +60,17 @@ export function BeybladeIdentifyResult({
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {/* Wiki Image */}
+        {result.image_url && (
+          <div className="flex justify-center">
+            <img 
+              src={result.image_url} 
+              alt={result.name}
+              className="w-48 h-48 object-contain rounded-lg bg-muted/50"
+            />
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 text-sm">
           {result.series && (
             <span className="px-2 py-1 bg-muted rounded-md">{result.series}</span>
@@ -64,11 +80,11 @@ export function BeybladeIdentifyResult({
           )}
           {result.confidence && (
             <span className={`px-2 py-1 rounded-md ${
-              result.confidence === 'high' ? 'bg-green-100 text-green-700' :
-              result.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-              'bg-red-100 text-red-700'
+              result.confidence === 'high' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+              result.confidence === 'medium' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
             }`}>
-              Confiança: {result.confidence}
+              Confiança: {result.confidence === 'high' ? 'Alta' : result.confidence === 'medium' ? 'Média' : 'Baixa'}
             </span>
           )}
         </div>
@@ -79,23 +95,38 @@ export function BeybladeIdentifyResult({
               <Layers className="w-4 h-4" />
               Componentes
             </h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              {result.components.layer && (
-                <div className="p-2 bg-muted rounded-md">
-                  <span className="text-muted-foreground">Layer:</span>{' '}
-                  <span className="font-medium">{result.components.layer}</span>
+            <div className="space-y-2 text-sm">
+              {getBladeComponent() && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-muted-foreground">Lâmina:</span>
+                    <span className="font-medium">{getBladeComponent()}</span>
+                  </div>
+                  {result.component_descriptions?.blade && (
+                    <p className="text-xs text-muted-foreground">{result.component_descriptions.blade}</p>
+                  )}
                 </div>
               )}
-              {result.components.disk && (
-                <div className="p-2 bg-muted rounded-md">
-                  <span className="text-muted-foreground">Disk:</span>{' '}
-                  <span className="font-medium">{result.components.disk}</span>
+              {getRatchetComponent() && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-muted-foreground">Catraca:</span>
+                    <span className="font-medium">{getRatchetComponent()}</span>
+                  </div>
+                  {result.component_descriptions?.ratchet && (
+                    <p className="text-xs text-muted-foreground">{result.component_descriptions.ratchet}</p>
+                  )}
                 </div>
               )}
-              {result.components.driver && (
-                <div className="p-2 bg-muted rounded-md">
-                  <span className="text-muted-foreground">Driver:</span>{' '}
-                  <span className="font-medium">{result.components.driver}</span>
+              {getBitComponent() && (
+                <div className="p-3 bg-muted rounded-md">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-muted-foreground">Ponteira:</span>
+                    <span className="font-medium">{getBitComponent()}</span>
+                  </div>
+                  {result.component_descriptions?.bit && (
+                    <p className="text-xs text-muted-foreground">{result.component_descriptions.bit}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -130,6 +161,18 @@ export function BeybladeIdentifyResult({
 
         {result.description && (
           <p className="text-sm text-muted-foreground">{result.description}</p>
+        )}
+
+        {result.wiki_url && (
+          <a 
+            href={result.wiki_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Ver na Wiki
+          </a>
         )}
 
         <div className="flex gap-3 pt-2">

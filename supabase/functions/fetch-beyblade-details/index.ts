@@ -49,6 +49,27 @@ serve(async (req) => {
     const categories = pageData.parse?.categories?.map((c: { "*": string }) => c["*"]) || [];
     const pageTitle = pageData.parse?.title || slug;
 
+    // Fetch the main image using pageimages API
+    let imageUrl = null;
+    try {
+      const imageApiUrl = `https://beyblade.fandom.com/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&pithumbsize=500`;
+      const imageResponse = await fetch(imageApiUrl, {
+        headers: { "User-Agent": "BeyCollection/1.0" },
+      });
+      
+      if (imageResponse.ok) {
+        const imageData = await imageResponse.json();
+        const pages = imageData.query?.pages;
+        if (pages) {
+          const pageId = Object.keys(pages)[0];
+          imageUrl = pages[pageId]?.thumbnail?.source || null;
+          console.log("Found image URL:", imageUrl);
+        }
+      }
+    } catch (imgError) {
+      console.error("Error fetching image:", imgError);
+    }
+
     // Use Gemini to extract structured data from the HTML content
     const systemPrompt = `Você é um especialista em Beyblades. Analise o conteúdo HTML de uma página da wiki Beyblade Fandom e extraia informações estruturadas.
 
@@ -60,12 +81,17 @@ IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto a
   "name": "Nome oficial da Beyblade conforme aparece na página",
   "name_hasbro": "Nome da versão Hasbro (se mencionado)",
   "series": "Nome da série (Beyblade X, Beyblade Burst, Metal Fight, etc)",
-  "generation": "Geração específica (ex: Burst GT, Dynamite Battle, Xtreme Gear, etc)",
+  "generation": "Geração específica (ex: Burst GT, Dynamite Battle, Xtreme Gear, Basic Line, etc)",
   "type": "Tipo: Attack/Defense/Stamina/Balance (baseado nas categorias ou conteúdo)",
   "components": {
     "blade": "Nome do Blade/Layer",
     "ratchet": "Nome do Ratchet/Disk (ex: 3-60, 4-80)",
     "bit": "Nome do Bit/Driver (ex: F, B, HN)"
+  },
+  "component_descriptions": {
+    "blade": "Descrição detalhada do Blade/Layer em português - o que ele faz, suas características",
+    "ratchet": "Descrição detalhada do Ratchet/Disk em português - altura, peso, características",
+    "bit": "Descrição detalhada do Bit/Driver em português - tipo de ponta, comportamento"
   },
   "specs": {
     "weight": "Peso se mencionado",
@@ -73,7 +99,7 @@ IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto a
     "defense": "Valor de defesa se mencionado (1-10)",
     "stamina": "Valor de stamina se mencionado (1-10)"
   },
-  "description": "Breve descrição sobre esta Beyblade baseada no conteúdo da página",
+  "description": "Breve descrição sobre esta Beyblade baseada no conteúdo da página, em português",
   "release_date": "Data de lançamento se mencionada",
   "product_code": "Código do produto se mencionado"
 }
@@ -86,7 +112,9 @@ Dicas para identificar o tipo:
 
 Para Beyblade X, os componentes são: Blade + Ratchet + Bit
 Para Beyblade Burst, os componentes são: Layer + Disk + Driver
-Para Metal Fight, os componentes são: Face Bolt + Energy Ring + Fusion Wheel + Spin Track + Performance Tip`;
+Para Metal Fight, os componentes são: Face Bolt + Energy Ring + Fusion Wheel + Spin Track + Performance Tip
+
+IMPORTANTE: Extraia as descrições dos componentes do conteúdo da página. Procure por seções que descrevem cada parte e traduza para português.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -127,6 +155,8 @@ Para Metal Fight, os componentes são: Face Bolt + Energy Ring + Fusion Wheel + 
       // Ensure the name matches the page title
       beyblade.name = pageTitle;
       beyblade.wiki_url = `https://beyblade.fandom.com/wiki/${slug}`;
+      // Add the image URL from the separate API call
+      beyblade.image_url = imageUrl;
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
       // Return basic info from the page
@@ -137,10 +167,11 @@ Para Metal Fight, os componentes são: Face Bolt + Energy Ring + Fusion Wheel + 
         series: categories.find((c: string) => c.includes("Beyblade")) || "Unknown",
         type: categories.find((c: string) => ["Attack", "Defense", "Stamina", "Balance"].some(t => c.includes(t))) || "Balance",
         wiki_url: `https://beyblade.fandom.com/wiki/${slug}`,
+        image_url: imageUrl,
       };
     }
 
-    console.log("Successfully extracted Beyblade details:", beyblade.name);
+    console.log("Successfully extracted Beyblade details:", beyblade.name, "with image:", beyblade.image_url);
 
     return new Response(JSON.stringify(beyblade), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
