@@ -132,33 +132,41 @@ export default function Register() {
       // Check if beyblade exists in catalog
       const { data: existingBeyblade } = await supabase
         .from("beyblade_catalog")
-        .select("id")
+        .select("id, image_url")
         .eq("name", identifyResult.name)
-        .single();
+        .maybeSingle();
 
       let beybladeId: string;
 
       if (existingBeyblade) {
         beybladeId = existingBeyblade.id;
         
-        // Update existing record with new data (especially image if missing)
+        // Only update image_url if we have a new one and the existing is null/empty
+        const shouldUpdateImage = catalogImageUrl && !existingBeyblade.image_url;
+        
+        // Update existing record with new data
         const { error: updateError } = await supabase
           .from("beyblade_catalog")
           .update({
-            image_url: catalogImageUrl,
-            description: identifyResult.description,
+            image_url: shouldUpdateImage ? catalogImageUrl : existingBeyblade.image_url,
+            description: identifyResult.description || undefined,
             specs: identifyResult.specs
               ? JSON.parse(JSON.stringify(identifyResult.specs))
-              : null,
+              : undefined,
             components: componentsData
               ? JSON.parse(JSON.stringify(componentsData))
-              : null,
-            name_hasbro: identifyResult.name_hasbro,
+              : undefined,
+            name_hasbro: identifyResult.name_hasbro || undefined,
           })
           .eq("id", beybladeId);
         
         if (updateError) {
           console.error("Error updating catalog:", updateError);
+          toast({
+            variant: "destructive",
+            title: "Erro ao atualizar catálogo",
+            description: "Não foi possível atualizar os dados da Beyblade no catálogo.",
+          });
         }
       } else {
         // Add new beyblade to catalog
