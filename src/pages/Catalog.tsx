@@ -142,11 +142,25 @@ export default function Catalog() {
               </DialogHeader>
               
               {selectedBeyblade.image_url && (
-                <img 
-                  src={selectedBeyblade.image_url} 
-                  alt={selectedBeyblade.name}
-                  className="w-full aspect-square object-cover rounded-lg"
-                />
+                <div className="relative">
+                  <img 
+                    src={selectedBeyblade.image_url} 
+                    alt={selectedBeyblade.name}
+                    className="w-full aspect-square object-cover rounded-lg"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling;
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
+                  />
+                  <div className="hidden w-full aspect-square flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+                    <span className="text-4xl mb-2">🖼️</span>
+                    <span className="text-sm text-muted-foreground">Imagem indisponível</span>
+                  </div>
+                </div>
               )}
               
               <div className="space-y-4">

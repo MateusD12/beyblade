@@ -67,7 +67,29 @@ export function BeybladeIdentifyResult({
               src={result.image_url} 
               alt={result.name}
               className="w-48 h-48 object-contain rounded-lg bg-muted/50"
+              referrerPolicy="no-referrer"
+              loading="lazy"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling;
+                if (fallback) fallback.classList.remove('hidden');
+              }}
             />
+            <div className="hidden w-48 h-48 flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+              <span className="text-4xl mb-2">🖼️</span>
+              <span className="text-xs text-muted-foreground">Imagem indisponível</span>
+              {result.wiki_url && (
+                <a 
+                  href={result.wiki_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-primary hover:underline mt-1"
+                >
+                  Ver na Wiki
+                </a>
+              )}
+            </div>
           </div>
         )}
 

@@ -244,7 +244,19 @@ export default function Collection() {
                     src={getDisplayImage(selectedItem)!} 
                     alt={selectedItem.beyblade.name}
                     className="w-full max-w-xs aspect-square object-contain rounded-lg bg-muted/50"
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    onError={(e) => {
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling;
+                      if (fallback) fallback.classList.remove('hidden');
+                    }}
                   />
+                  <div className="hidden w-full max-w-xs aspect-square flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+                    <span className="text-4xl mb-2">🖼️</span>
+                    <span className="text-sm text-muted-foreground">Imagem indisponível</span>
+                  </div>
                 </div>
               )}
               

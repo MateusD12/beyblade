@@ -19,11 +19,26 @@ export function BeybladeCard({ beyblade, photoUrl, onClick }: BeybladeCardProps)
     >
       <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted to-muted/50">
         {(photoUrl || beyblade.image_url) ? (
-          <img 
-            src={photoUrl || beyblade.image_url || ''} 
-            alt={beyblade.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          />
+          <>
+            <img 
+              src={photoUrl || beyblade.image_url || ''} 
+              alt={beyblade.name}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              referrerPolicy="no-referrer"
+              loading="lazy"
+              onError={(e) => {
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                const fallback = target.nextElementSibling;
+                if (fallback) fallback.classList.remove('hidden');
+              }}
+            />
+            <div className="hidden w-full h-full flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                <span className="text-4xl">🌀</span>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="w-24 h-24 rounded-full border-4 border-dashed border-muted-foreground/30 flex items-center justify-center">
