@@ -16,10 +16,10 @@ export function BeybladeCard({ beyblade, photoUrl, spinDirection, onClick }: Bey
   
   return (
     <Card 
-      className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
+      className="overflow-hidden transition-all duration-300 cursor-pointer group border shadow-sm hover:shadow-xl hover:border-primary/30 hover:-translate-y-1"
       onClick={onClick}
     >
-      <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted to-muted/50">
+      <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 via-muted/30 to-transparent">
         {(photoUrl || beyblade.image_url) ? (
           <>
             <img 

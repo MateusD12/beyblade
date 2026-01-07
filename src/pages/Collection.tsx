@@ -360,55 +360,77 @@ export default function Collection() {
           <Accordion 
             type="multiple" 
             defaultValue={groupedCollection.map(s => s.series)}
-            className="space-y-4"
+            className="space-y-6"
           >
-            {groupedCollection.map(({ series, generations }) => (
-              <AccordionItem key={series} value={series} className="border rounded-lg px-4">
-                <AccordionTrigger className="text-lg font-bold hover:no-underline">
-                  <div className="flex items-center gap-2">
-                    {series}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      ({generations.reduce((acc, g) => acc + g.items.length, 0)})
-                    </span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <Accordion 
-                    type="multiple" 
-                    defaultValue={generations.map(g => g.generation)}
-                    className="space-y-2"
-                  >
-                    {generations.map(({ generation, items }) => (
-                      <AccordionItem key={generation} value={generation} className="border rounded-md px-3">
-                        <AccordionTrigger className="text-base font-semibold hover:no-underline py-3">
-                          <div className="flex items-center gap-2">
-                            {generation}
-                            <span className="text-sm font-normal text-muted-foreground">
-                              ({items.length})
-                            </span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-2">
-                            {items.map(item => (
-                              item.beyblade && (
-                                <BeybladeCard
-                                  key={item.id}
-                                  beyblade={item.beyblade}
-                                  photoUrl={item.photo_url}
-                                  spinDirection={item.spin_direction}
-                                  onClick={() => setSelectedItem(item)}
-                                />
-                              )
-                            ))}
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
+            {groupedCollection.map(({ series, generations }) => {
+              const totalInSeries = generations.reduce((acc, g) => acc + g.items.length, 0);
+              return (
+                <AccordionItem 
+                  key={series} 
+                  value={series} 
+                  className="border-0 rounded-xl overflow-hidden shadow-md bg-card"
+                >
+                  <AccordionTrigger className="text-lg font-bold hover:no-underline px-5 py-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shadow-inner">
+                        <span className="text-xl">🌀</span>
+                      </div>
+                      <div className="text-left">
+                        <span className="block">{series}</span>
+                        <span className="text-sm font-normal text-muted-foreground">
+                          {totalInSeries} {totalInSeries === 1 ? 'Beyblade' : 'Beyblades'}
+                        </span>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-4">
+                    <Accordion 
+                      type="multiple" 
+                      defaultValue={generations.map(g => g.generation)}
+                      className="space-y-3 mt-2"
+                    >
+                      {generations.map(({ generation, items }) => (
+                        <AccordionItem 
+                          key={generation} 
+                          value={generation} 
+                          className="border-0 border-l-4 border-l-primary/40 rounded-lg bg-muted/40 ml-2 overflow-hidden"
+                        >
+                          <AccordionTrigger className="py-3 px-4 text-base font-semibold hover:no-underline hover:bg-muted/60 transition-colors">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 rounded-full bg-primary" />
+                              <span>{generation}</span>
+                              <span className="text-xs font-normal text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full shadow-sm">
+                                {items.length}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 py-3">
+                              {items.map((item, index) => (
+                                item.beyblade && (
+                                  <div 
+                                    key={item.id}
+                                    className="animate-fade-in"
+                                    style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
+                                  >
+                                    <BeybladeCard
+                                      beyblade={item.beyblade}
+                                      photoUrl={item.photo_url}
+                                      spinDirection={item.spin_direction}
+                                      onClick={() => setSelectedItem(item)}
+                                    />
+                                  </div>
+                                )
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
           </Accordion>
         )}
       </div>
