@@ -70,10 +70,13 @@ serve(async (req) => {
 
     console.log("Page title:", pageTitle);
 
-    // Fetch and save the image to Supabase Storage with timeout (non-blocking)
-    let savedImageUrl = null;
+    // Fetch the wiki image URL and optionally save to storage
+    let wikiImageUrl: string | null = null;
+    let savedImageUrl: string | null = null;
+    
     try {
-      const imageApiUrl = `https://beyblade.fandom.com/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&piprop=original`;
+      // Fetch thumbnail (faster) + original as fallback
+      const imageApiUrl = `https://beyblade.fandom.com/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&piprop=thumbnail|original&pithumbsize=400&redirects=1`;
       console.log("Fetching image from:", imageApiUrl);
       
       const imgApiController = new AbortController();
@@ -91,61 +94,76 @@ serve(async (req) => {
         const pages = imageData.query?.pages;
         if (pages) {
           const pageId = Object.keys(pages)[0];
-          const originalImageUrl = pages[pageId]?.original?.source || pages[pageId]?.thumbnail?.source;
-          
-          console.log("Found wiki image URL:", originalImageUrl);
-          
-          if (originalImageUrl) {
-            // Download the image with timeout
-            const imgController = new AbortController();
-            const imgTimeout = setTimeout(() => imgController.abort(), 8000);
-            
-            try {
-              const imgResponse = await fetch(originalImageUrl, {
-                headers: { "User-Agent": "BeyCollection/1.0" },
-                signal: imgController.signal,
-              });
-              
-              clearTimeout(imgTimeout);
-              
-              if (imgResponse.ok) {
-                const imageBuffer = await imgResponse.arrayBuffer();
-                const fileName = `wiki/${slug.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`;
-                
-                console.log("Uploading image to storage:", fileName);
-                
-                // Upload to Supabase Storage
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                  .from('beyblade-photos')
-                  .upload(fileName, imageBuffer, {
-                    contentType: 'image/jpeg',
-                    upsert: true,
-                  });
-                
-                if (uploadError) {
-                  console.error("Error uploading image:", uploadError);
-                } else {
-                  // Get public URL
-                  const { data: urlData } = supabase.storage
-                    .from('beyblade-photos')
-                    .getPublicUrl(fileName);
-                  
-                  savedImageUrl = urlData.publicUrl;
-                  console.log("Image saved successfully:", savedImageUrl);
-                }
-              }
-            } catch (imgDownloadError) {
-              clearTimeout(imgTimeout);
-              console.error("Image download timed out or failed:", imgDownloadError);
-              // Continue without image - don't block the response
-            }
+          if (pageId !== "-1") {
+            const page = pages[pageId];
+            // Prefer thumbnail (faster), fallback to original
+            wikiImageUrl = page.thumbnail?.source || page.original?.source || null;
+            console.log("Found wiki image URL:", wikiImageUrl);
           }
         }
       }
-    } catch (imgError) {
-      console.error("Error fetching/saving image (continuing without image):", imgError);
-      // Continue without image - don't block the response
+    } catch (imgApiError) {
+      console.error("Error fetching image API:", imgApiError);
     }
+
+    // Try to download and save image to storage (optional - don't block on failure)
+    if (wikiImageUrl) {
+      try {
+        const imgController = new AbortController();
+        const imgTimeout = setTimeout(() => imgController.abort(), 10000);
+        
+        console.log("Downloading image from wiki...");
+        const imgResponse = await fetch(wikiImageUrl, {
+          headers: { 
+            "User-Agent": "BeyCollection/1.0",
+            "Referer": "https://beyblade.fandom.com/",
+          },
+          signal: imgController.signal,
+        });
+        
+        clearTimeout(imgTimeout);
+        
+        if (imgResponse.ok) {
+          const imageBuffer = await imgResponse.arrayBuffer();
+          const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
+          const extension = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+          
+          const sanitizedSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+          const fileName = `wiki/${sanitizedSlug}.${extension}`;
+          
+          console.log("Uploading image to storage:", fileName);
+          
+          // Upload to Supabase Storage
+          const { error: uploadError } = await supabase.storage
+            .from('beyblade-photos')
+            .upload(fileName, imageBuffer, {
+              contentType,
+              upsert: true,
+            });
+          
+          if (uploadError) {
+            console.error("Error uploading image:", uploadError);
+          } else {
+            // Get public URL
+            const { data: urlData } = supabase.storage
+              .from('beyblade-photos')
+              .getPublicUrl(fileName);
+            
+            savedImageUrl = urlData.publicUrl;
+            console.log("Image saved successfully:", savedImageUrl);
+          }
+        } else {
+          console.error("Image download failed with status:", imgResponse.status);
+        }
+      } catch (imgDownloadError) {
+        console.error("Image download timed out or failed:", imgDownloadError);
+        // Continue with wiki URL as fallback
+      }
+    }
+
+    // Use saved image URL, or fallback to wiki URL directly
+    const finalImageUrl = savedImageUrl || wikiImageUrl;
+    console.log("Final image URL:", finalImageUrl);
 
     // Use Gemini to search for information in Portuguese
     const searchPrompt = `Você é um especialista em Beyblade. Busque informações sobre a Beyblade "${pageTitle}" e retorne dados estruturados em português brasileiro.
@@ -231,7 +249,7 @@ TODAS as informações devem estar em português brasileiro.`;
       beyblade = JSON.parse(cleanContent);
       beyblade.name = pageTitle;
       beyblade.wiki_url = `https://beyblade.fandom.com/wiki/${slug}`;
-      beyblade.image_url = savedImageUrl;
+      beyblade.image_url = finalImageUrl;
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
       // Determine type from categories
@@ -247,7 +265,7 @@ TODAS as informações devem estar em português brasileiro.`;
         series: "Beyblade",
         type: type,
         wiki_url: `https://beyblade.fandom.com/wiki/${slug}`,
-        image_url: savedImageUrl,
+        image_url: finalImageUrl,
       };
     }
 
