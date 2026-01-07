@@ -1,1 +1,4 @@
 project_id = "gcsnlxedyrlusleskjks"
+
+[functions.identify-beyblade]
+verify_jwt = false
