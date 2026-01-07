@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { BeybladeCard } from '@/components/BeybladeCard';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { CollectionItem, Beyblade, BeybladeComponents, BeybladeSpecs, ComponentDescriptions } from '@/types/beyblade';
+import { CollectionItem, Beyblade, BeybladeComponents, BeybladeSpecs } from '@/types/beyblade';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap, ExternalLink } from 'lucide-react';
+import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap } from 'lucide-react';
 import { getBeybladeImageUrl } from '@/lib/utils';
+import { getSeriesOrder, getGenerationOrder } from '@/lib/beybladeOrder';
 import {
   Dialog,
   DialogContent,
@@ -25,21 +26,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { TypeBadge } from '@/components/TypeBadge';
 import { useToast } from '@/hooks/use-toast';
-
-// Translations
-const TYPE_TRANSLATIONS: Record<string, string> = {
-  'Attack': 'Ataque',
-  'Defense': 'Defesa',
-  'Stamina': 'Resistência',
-  'Balance': 'Equilíbrio',
-};
 
 export default function Collection() {
   const [collection, setCollection] = useState<CollectionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterSeries, setFilterSeries] = useState<string>('all');
+  const [filterGeneration, setFilterGeneration] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<CollectionItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -54,6 +62,11 @@ export default function Collection() {
     }
   }, [user]);
 
+  // Reset generation filter when series changes
+  useEffect(() => {
+    setFilterGeneration('all');
+  }, [filterSeries]);
+
   const fetchCollection = async () => {
     try {
       const { data, error } = await supabase
@@ -67,7 +80,6 @@ export default function Collection() {
 
       if (error) throw error;
       
-      // Transform the data to match our types
       const transformedData: CollectionItem[] = (data || []).map(item => ({
         ...item,
         beyblade: item.beyblade ? {
@@ -117,22 +129,87 @@ export default function Collection() {
     }
   };
 
-  const filteredCollection = collection.filter(item => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      item.beyblade?.name.toLowerCase().includes(query) ||
-      item.beyblade?.series.toLowerCase().includes(query) ||
-      item.custom_name?.toLowerCase().includes(query)
+  // Extract unique series from user's collection
+  const availableSeries = useMemo(() => {
+    const series = new Set(
+      collection
+        .map(item => item.beyblade?.series)
+        .filter((s): s is string => Boolean(s))
     );
-  });
+    return Array.from(series).sort((a, b) => getSeriesOrder(a) - getSeriesOrder(b));
+  }, [collection]);
 
-  // Helper to get component names (supports both Burst and X naming)
+  // Extract unique generations based on selected series
+  const availableGenerations = useMemo(() => {
+    const generations = new Set(
+      collection
+        .filter(item => filterSeries === 'all' || item.beyblade?.series === filterSeries)
+        .map(item => item.beyblade?.generation)
+        .filter((g): g is string => Boolean(g))
+    );
+    return Array.from(generations).sort((a, b) => getGenerationOrder(a) - getGenerationOrder(b));
+  }, [collection, filterSeries]);
+
+  // Group and sort collection hierarchically
+  const groupedCollection = useMemo(() => {
+    const filtered = collection.filter(item => {
+      if (!item.beyblade) return false;
+      if (filterSeries !== 'all' && item.beyblade.series !== filterSeries) return false;
+      if (filterGeneration !== 'all' && item.beyblade.generation !== filterGeneration) return false;
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const nameMatch = item.beyblade.name.toLowerCase().includes(q);
+        const customNameMatch = item.custom_name?.toLowerCase().includes(q);
+        if (!nameMatch && !customNameMatch) return false;
+      }
+      return true;
+    });
+
+    // Group by series
+    const bySeries = new Map<string, Map<string, CollectionItem[]>>();
+    
+    for (const item of filtered) {
+      const series = item.beyblade!.series;
+      const gen = item.beyblade!.generation;
+      
+      if (!bySeries.has(series)) bySeries.set(series, new Map());
+      const byGen = bySeries.get(series)!;
+      if (!byGen.has(gen)) byGen.set(gen, []);
+      byGen.get(gen)!.push(item);
+    }
+
+    // Sort by series (newest first)
+    const sortedSeries = Array.from(bySeries.entries())
+      .sort((a, b) => getSeriesOrder(a[0]) - getSeriesOrder(b[0]));
+
+    // Sort generations and beyblades within each series
+    return sortedSeries.map(([series, genMap]) => ({
+      series,
+      generations: Array.from(genMap.entries())
+        .sort((a, b) => getGenerationOrder(a[0]) - getGenerationOrder(b[0]))
+        .map(([gen, items]) => ({
+          generation: gen,
+          items: items.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          ),
+        })),
+    }));
+  }, [collection, filterSeries, filterGeneration, searchQuery]);
+
+  // Total filtered count
+  const filteredCount = useMemo(() => {
+    return groupedCollection.reduce(
+      (acc, s) => acc + s.generations.reduce((gAcc, g) => gAcc + g.items.length, 0),
+      0
+    );
+  }, [groupedCollection]);
+
+  // Helper to get component names
   const getBladeComponent = (components: BeybladeComponents) => components.blade || components.layer;
   const getRatchetComponent = (components: BeybladeComponents) => components.ratchet || components.disk;
   const getBitComponent = (components: BeybladeComponents) => components.bit || components.driver;
 
-  // Get the image to display (user photo > wiki image via proxy > placeholder)
+  // Get the image to display
   const getDisplayImage = (item: CollectionItem) => {
     if (item.photo_url) return item.photo_url;
     if (item.beyblade?.image_url) {
@@ -168,45 +245,74 @@ export default function Collection() {
           <div>
             <h1 className="text-2xl font-bold">Minha Coleção</h1>
             <p className="text-muted-foreground">
-              {collection.length} {collection.length === 1 ? 'Beyblade' : 'Beyblades'}
+              {filteredCount} {filteredCount === 1 ? 'Beyblade' : 'Beyblades'}
+              {filteredCount !== collection.length && ` (de ${collection.length})`}
             </p>
           </div>
           
-          <div className="flex gap-3">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Link to="/register">
-              <Button>
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Adicionar
-              </Button>
-            </Link>
+          <Link to="/register">
+            <Button>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Adicionar
+            </Button>
+          </Link>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
           </div>
+          
+          <Select value={filterSeries} onValueChange={setFilterSeries}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Série" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Séries</SelectItem>
+              {availableSeries.map(s => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={filterGeneration} onValueChange={setFilterGeneration}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Geração" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Gerações</SelectItem>
+              {availableGenerations.map(g => (
+                <SelectItem key={g} value={g}>{g}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-        ) : filteredCollection.length === 0 ? (
+        ) : groupedCollection.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🌀</div>
             <h3 className="text-xl font-bold mb-2">
-              {searchQuery ? 'Nenhuma Beyblade encontrada' : 'Coleção vazia'}
+              {searchQuery || filterSeries !== 'all' || filterGeneration !== 'all' 
+                ? 'Nenhuma Beyblade encontrada' 
+                : 'Coleção vazia'}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery 
-                ? 'Tente outro termo de busca' 
+              {searchQuery || filterSeries !== 'all' || filterGeneration !== 'all'
+                ? 'Tente outros filtros de busca' 
                 : 'Comece adicionando sua primeira Beyblade!'}
             </p>
-            {!searchQuery && (
+            {!searchQuery && filterSeries === 'all' && filterGeneration === 'all' && (
               <Link to="/register">
                 <Button>
                   <PlusCircle className="w-4 h-4 mr-2" />
@@ -216,18 +322,58 @@ export default function Collection() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredCollection.map((item) => (
-              item.beyblade && (
-                <BeybladeCard
-                  key={item.id}
-                  beyblade={item.beyblade}
-                  photoUrl={item.photo_url}
-                  onClick={() => setSelectedItem(item)}
-                />
-              )
+          <Accordion 
+            type="multiple" 
+            defaultValue={groupedCollection.map(s => s.series)}
+            className="space-y-4"
+          >
+            {groupedCollection.map(({ series, generations }) => (
+              <AccordionItem key={series} value={series} className="border rounded-lg px-4">
+                <AccordionTrigger className="text-lg font-bold hover:no-underline">
+                  <div className="flex items-center gap-2">
+                    {series}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({generations.reduce((acc, g) => acc + g.items.length, 0)})
+                    </span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <Accordion 
+                    type="multiple" 
+                    defaultValue={generations.map(g => g.generation)}
+                    className="space-y-2"
+                  >
+                    {generations.map(({ generation, items }) => (
+                      <AccordionItem key={generation} value={generation} className="border rounded-md px-3">
+                        <AccordionTrigger className="text-base font-semibold hover:no-underline py-3">
+                          <div className="flex items-center gap-2">
+                            {generation}
+                            <span className="text-sm font-normal text-muted-foreground">
+                              ({items.length})
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-2">
+                            {items.map(item => (
+                              item.beyblade && (
+                                <BeybladeCard
+                                  key={item.id}
+                                  beyblade={item.beyblade}
+                                  photoUrl={item.photo_url}
+                                  onClick={() => setSelectedItem(item)}
+                                />
+                              )
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         )}
       </div>
 
