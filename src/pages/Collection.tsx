@@ -239,10 +239,51 @@ export default function Collection() {
     );
   }, [groupedCollection]);
 
-  // Helper to get component names
-  const getBladeComponent = (components: BeybladeComponents) => components.blade || components.layer;
-  const getRatchetComponent = (components: BeybladeComponents) => components.ratchet || components.disk;
-  const getBitComponent = (components: BeybladeComponents) => components.bit || components.driver;
+  // Mapeamento de labels para componentes dinâmicos
+  const COMPONENT_LABELS: Record<string, string> = {
+    blade: 'Lâmina',
+    ratchet: 'Catraca',
+    bit: 'Ponteira',
+    layer: 'Camada',
+    disk: 'Disco',
+    driver: 'Driver',
+    energy_layer: 'Camada de Energia',
+    strike_chip: 'Strike Chip',
+    gravity_ring: 'Anel de Gravidade',
+    forge_disc: 'Disco Forjado',
+    performance_tip: 'Ponta de Desempenho',
+    armor_tip: 'Ponta de Armadura',
+    fusion_ring: 'Anel de Fusão',
+    face_bolt: 'Parafuso Facial',
+    energy_ring: 'Anel de Energia',
+    fusion_wheel: 'Roda de Fusão',
+    spin_track: 'Trilho de Giro',
+  };
+
+  // Renderizar componentes dinamicamente
+  const renderDynamicComponents = (components: BeybladeComponents) => {
+    const descriptions = (components as any)?.descriptions || {};
+    
+    return Object.entries(components)
+      .filter(([key, value]) => {
+        if (key === 'descriptions') return false;
+        if (!value || typeof value !== 'string') return false;
+        const lowerValue = value.toLowerCase();
+        if (lowerValue.includes('não aplicável') || lowerValue.includes('nao aplicavel')) return false;
+        return true;
+      })
+      .map(([key, value]) => (
+        <div key={key} className="p-3 bg-muted rounded-md">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-muted-foreground">🔷 {COMPONENT_LABELS[key] || key}:</span>
+            <span className="font-medium">{value as string}</span>
+          </div>
+          {descriptions[key] && (
+            <p className="text-xs text-muted-foreground mt-1">{descriptions[key]}</p>
+          )}
+        </div>
+      ));
+  };
 
   // Get the image to display
   const getDisplayImage = (item: CollectionItem) => {
@@ -488,51 +529,7 @@ export default function Collection() {
                   <div className="space-y-2">
                     <h4 className="font-semibold">Componentes</h4>
                     <div className="space-y-2 text-sm">
-                      {getBladeComponent(selectedItem.beyblade.components as BeybladeComponents) && (
-                        <div className="p-3 bg-muted rounded-md">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-muted-foreground">🔷 Lâmina:</span>
-                            <span className="font-medium">
-                              {getBladeComponent(selectedItem.beyblade.components as BeybladeComponents)}
-                            </span>
-                          </div>
-                          {(selectedItem.beyblade.components as any).descriptions?.blade && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {(selectedItem.beyblade.components as any).descriptions.blade}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      {getRatchetComponent(selectedItem.beyblade.components as BeybladeComponents) && (
-                        <div className="p-3 bg-muted rounded-md">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-muted-foreground">🔷 Catraca:</span>
-                            <span className="font-medium">
-                              {getRatchetComponent(selectedItem.beyblade.components as BeybladeComponents)}
-                            </span>
-                          </div>
-                          {(selectedItem.beyblade.components as any).descriptions?.ratchet && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {(selectedItem.beyblade.components as any).descriptions.ratchet}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      {getBitComponent(selectedItem.beyblade.components as BeybladeComponents) && (
-                        <div className="p-3 bg-muted rounded-md">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-muted-foreground">🔷 Ponteira:</span>
-                            <span className="font-medium">
-                              {getBitComponent(selectedItem.beyblade.components as BeybladeComponents)}
-                            </span>
-                          </div>
-                          {(selectedItem.beyblade.components as any).descriptions?.bit && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {(selectedItem.beyblade.components as any).descriptions.bit}
-                            </p>
-                          )}
-                        </div>
-                      )}
+                      {renderDynamicComponents(selectedItem.beyblade.components as BeybladeComponents)}
                     </div>
                   </div>
                 )}

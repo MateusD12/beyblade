@@ -142,10 +142,13 @@ export default function Register() {
       const catalogImageUrl = photoUrl || identifyResult.image_url || null;
       
       // Build components with descriptions included
+      // Priorizar descrições que já estão dentro de components
       const componentsData = identifyResult.components
         ? {
             ...identifyResult.components,
-            descriptions: identifyResult.component_descriptions || null,
+            descriptions: (identifyResult.components as any)?.descriptions || 
+                          identifyResult.component_descriptions || 
+                          null,
           }
         : null;
 
