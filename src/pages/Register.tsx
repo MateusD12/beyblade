@@ -118,6 +118,17 @@ export default function Register() {
         }
       }
 
+      // Prepare catalog data
+      const catalogImageUrl = photoUrl || identifyResult.image_url || null;
+      
+      // Build components with descriptions included
+      const componentsData = identifyResult.components
+        ? {
+            ...identifyResult.components,
+            descriptions: identifyResult.component_descriptions || null,
+          }
+        : null;
+
       // Check if beyblade exists in catalog
       const { data: existingBeyblade } = await supabase
         .from("beyblade_catalog")
@@ -129,18 +140,28 @@ export default function Register() {
 
       if (existingBeyblade) {
         beybladeId = existingBeyblade.id;
+        
+        // Update existing record with new data (especially image if missing)
+        const { error: updateError } = await supabase
+          .from("beyblade_catalog")
+          .update({
+            image_url: catalogImageUrl,
+            description: identifyResult.description,
+            specs: identifyResult.specs
+              ? JSON.parse(JSON.stringify(identifyResult.specs))
+              : null,
+            components: componentsData
+              ? JSON.parse(JSON.stringify(componentsData))
+              : null,
+            name_hasbro: identifyResult.name_hasbro,
+          })
+          .eq("id", beybladeId);
+        
+        if (updateError) {
+          console.error("Error updating catalog:", updateError);
+        }
       } else {
-        // Add to catalog - use wiki image if no user photo
-        const catalogImageUrl = photoUrl || identifyResult.image_url || null;
-        
-        // Build components with descriptions included
-        const componentsData = identifyResult.components
-          ? {
-              ...identifyResult.components,
-              descriptions: identifyResult.component_descriptions || null,
-            }
-          : null;
-        
+        // Add new beyblade to catalog
         const { data: newBeyblade, error: catalogError } = await supabase
           .from("beyblade_catalog")
           .insert([
