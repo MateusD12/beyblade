@@ -2,7 +2,19 @@ export interface BeybladeComponents {
   layer?: string;
   disk?: string;
   driver?: string;
+  blade?: string;
+  ratchet?: string;
+  bit?: string;
   extra?: string;
+}
+
+export interface ComponentDescriptions {
+  blade?: string;
+  ratchet?: string;
+  bit?: string;
+  layer?: string;
+  disk?: string;
+  driver?: string;
 }
 
 export interface BeybladeSpecs {
@@ -20,6 +32,7 @@ export interface Beyblade {
   generation: string;
   type: string;
   components?: BeybladeComponents | null;
+  component_descriptions?: ComponentDescriptions | null;
   specs?: BeybladeSpecs | null;
   description?: string | null;
   image_url?: string | null;
@@ -50,8 +63,11 @@ export interface IdentifyResponse {
   generation?: string;
   type?: string;
   components?: BeybladeComponents;
+  component_descriptions?: ComponentDescriptions;
   specs?: BeybladeSpecs;
   description?: string;
+  image_url?: string;
+  wiki_url?: string;
   error_message?: string;
 }
 

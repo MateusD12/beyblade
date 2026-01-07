@@ -130,7 +130,9 @@ export default function Register() {
       if (existingBeyblade) {
         beybladeId = existingBeyblade.id;
       } else {
-        // Add to catalog
+        // Add to catalog - use wiki image if no user photo
+        const catalogImageUrl = photoUrl || identifyResult.image_url || null;
+        
         const { data: newBeyblade, error: catalogError } = await supabase
           .from("beyblade_catalog")
           .insert([
@@ -147,7 +149,7 @@ export default function Register() {
                 ? JSON.parse(JSON.stringify(identifyResult.specs))
                 : null,
               description: identifyResult.description,
-              image_url: photoUrl,
+              image_url: catalogImageUrl,
             },
           ])
           .select("id")
