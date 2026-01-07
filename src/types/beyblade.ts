@@ -1,13 +1,37 @@
 export interface BeybladeComponents {
-  layer?: string;
-  disk?: string;
-  driver?: string;
+  // Beyblade X
   blade?: string;
   ratchet?: string;
   bit?: string;
+  
+  // Beyblade Burst (clássico)
+  layer?: string;
+  disk?: string;
+  driver?: string;
+  
+  // Beyblade Burst QuadStrike/QuadDrive
+  energy_layer?: string;
+  forge_disc?: string;
+  performance_tip?: string;
+  armor_tip?: string;
+  fusion_ring?: string;
+  strike_chip?: string;
+  gravity_ring?: string;
+  
+  // Metal Fight Beyblade
+  face_bolt?: string;
+  energy_ring?: string;
+  fusion_wheel?: string;
+  spin_track?: string;
+  
+  // Outros
   extra?: string;
+  
+  // Descrições aninhadas (como vem da API)
+  descriptions?: Record<string, string>;
 }
 
+// Mantido para compatibilidade, mas as descrições agora vêm dentro de components.descriptions
 export interface ComponentDescriptions {
   blade?: string;
   ratchet?: string;
@@ -15,6 +39,17 @@ export interface ComponentDescriptions {
   layer?: string;
   disk?: string;
   driver?: string;
+  energy_layer?: string;
+  forge_disc?: string;
+  performance_tip?: string;
+  armor_tip?: string;
+  fusion_ring?: string;
+  strike_chip?: string;
+  gravity_ring?: string;
+  face_bolt?: string;
+  energy_ring?: string;
+  fusion_wheel?: string;
+  spin_track?: string;
 }
 
 export interface BeybladeSpecs {

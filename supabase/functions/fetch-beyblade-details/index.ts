@@ -168,47 +168,71 @@ serve(async (req) => {
     // Use Gemini to search for information in Portuguese
     const searchPrompt = `Você é um especialista em Beyblade. Busque informações sobre a Beyblade "${pageTitle}" e retorne dados estruturados em português brasileiro.
 
-IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto adicional:
+IMPORTANTE: Cada série de Beyblade tem componentes DIFERENTES. Identifique a série correta e retorne APENAS os componentes relevantes para aquela série. NÃO coloque "Não aplicável" - simplesmente omita componentes que não existem para aquela série.
+
+**Estrutura de componentes por série:**
+
+Beyblade X (sistema mais recente):
+- blade: Nome da Lâmina
+- ratchet: Catraca (ex: 3-60, 5-80, 4-70)  
+- bit: Ponteira (ex: Ball, Flat, GP, High Needle)
+
+Beyblade Burst (God, Cho-Z, GT, Sparking):
+- layer: Camada de Energia
+- disk: Disco (ex: 0, 7, Blitz, Around)
+- driver: Driver (ex: Xtreme, Bearing, Destroy)
+
+Beyblade Burst QuadStrike/QuadDrive (Hasbro):
+- energy_layer: Camada de Energia (ex: Chain Kerbeus K8)
+- strike_chip: Strike Chip (ex: Kerbeus K8)
+- gravity_ring: Anel de Gravidade (ex: 6)
+- forge_disc: Disco Forjado (ex: Aquilon-Q)
+- performance_tip: Ponta de Desempenho (ex: Revolve-Q)
+- armor_tip: Ponta de Armadura (ex: Yard-6)
+
+Metal Fight Beyblade:
+- face_bolt: Parafuso Facial
+- energy_ring: Anel de Energia
+- fusion_wheel: Roda de Fusão
+- spin_track: Trilho de Giro
+- performance_tip: Ponta de Desempenho
+
+Responda APENAS com um JSON válido:
 
 {
   "identified": true,
   "confidence": "high",
   "name": "${pageTitle}",
-  "name_hasbro": "Nome da versão Hasbro (se houver)",
-  "series": "Série (Beyblade X, Beyblade Burst, Metal Fight, etc)",
-  "generation": "Linha específica (Basic Line, Pro Series, Xtreme Gear, etc)",
-  "type": "Tipo em português: Ataque/Defesa/Resistência/Equilíbrio",
+  "name_hasbro": "Nome Hasbro se diferente, ou null",
+  "series": "Série exata (Beyblade X / Beyblade Burst / Metal Fight Beyblade)",
+  "generation": "Linha específica (Basic Line, QuadStrike, God, etc)",
+  "type": "Tipo: Ataque/Defesa/Resistência/Equilíbrio",
   "components": {
-    "blade": "Nome da Lâmina/Blade",
-    "ratchet": "Nome da Catraca/Ratchet (ex: 3-60, 4-80)",
-    "bit": "Nome da Ponteira/Bit (ex: Flat, Ball, High Needle)"
-  },
-  "component_descriptions": {
-    "blade": "Descrição detalhada da lâmina em português - design, características, vantagens",
-    "ratchet": "Descrição detalhada da catraca em português - altura, pontos de contato, peso",
-    "bit": "Descrição detalhada da ponteira em português - tipo de movimento, comportamento na arena"
+    // APENAS os componentes que existem para esta série
+    // Por exemplo, para Beyblade X: blade, ratchet, bit
+    // NÃO inclua componentes que não existem nesta série
+    "descriptions": {
+      // Descrição detalhada de cada componente listado acima
+    }
   },
   "specs": {
-    "weight": "Peso aproximado em gramas",
-    "attack": "Valor de ataque (1-10)",
-    "defense": "Valor de defesa (1-10)",
-    "stamina": "Valor de resistência (1-10)"
+    "weight": "Peso em gramas",
+    "attack": "1-10",
+    "defense": "1-10", 
+    "stamina": "1-10"
   },
-  "description": "Descrição completa desta Beyblade em português, incluindo suas características, pontos fortes e estratégias de uso"
+  "description": "Descrição completa em português"
 }
 
-Categorias da wiki para referência: ${categories.join(", ")}
+Categorias da wiki: ${categories.join(", ")}
 
-Dicas:
-- Se as categorias incluem "Attack" → type: "Ataque"
-- Se as categorias incluem "Defense" → type: "Defesa"  
-- Se as categorias incluem "Stamina" → type: "Resistência"
-- Se as categorias incluem "Balance" → type: "Equilíbrio"
+Dicas de tipo:
+- "Attack" → "Ataque"
+- "Defense" → "Defesa"
+- "Stamina" → "Resistência"  
+- "Balance" → "Equilíbrio"
 
-Para Beyblade X: Blade (Lâmina) + Ratchet (Catraca) + Bit (Ponteira)
-Para Beyblade Burst: Layer (Camada) + Disk (Disco) + Driver (Driver)
-
-TODAS as informações devem estar em português brasileiro.`;
+TODAS as informações em português brasileiro. Não inclua campos com "Não aplicável".`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
