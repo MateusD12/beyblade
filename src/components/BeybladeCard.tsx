@@ -7,10 +7,11 @@ import { getBeybladeImageUrl } from '@/lib/utils';
 interface BeybladeCardProps {
   beyblade: Beyblade;
   photoUrl?: string | null;
+  spinDirection?: 'L' | 'R' | 'R/L' | null;
   onClick?: () => void;
 }
 
-export function BeybladeCard({ beyblade, photoUrl, onClick }: BeybladeCardProps) {
+export function BeybladeCard({ beyblade, photoUrl, spinDirection, onClick }: BeybladeCardProps) {
   const specs = beyblade.specs as { attack?: string; defense?: string; stamina?: string } | null;
   
   return (
@@ -50,6 +51,11 @@ export function BeybladeCard({ beyblade, photoUrl, onClick }: BeybladeCardProps)
         <div className="absolute top-3 right-3">
           <TypeBadge type={beyblade.type} />
         </div>
+        {spinDirection && (
+          <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold border shadow-sm">
+            {spinDirection}
+          </div>
+        )}
       </div>
       
       <CardHeader className="pb-2">

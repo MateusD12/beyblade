@@ -96,6 +96,7 @@ export type Database = {
           id: string
           notes: string | null
           photo_url: string | null
+          spin_direction: string | null
           updated_at: string
           user_id: string
         }
@@ -108,6 +109,7 @@ export type Database = {
           id?: string
           notes?: string | null
           photo_url?: string | null
+          spin_direction?: string | null
           updated_at?: string
           user_id: string
         }
@@ -120,6 +122,7 @@ export type Database = {
           id?: string
           notes?: string | null
           photo_url?: string | null
+          spin_direction?: string | null
           updated_at?: string
           user_id?: string
         }

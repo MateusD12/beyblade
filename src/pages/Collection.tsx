@@ -40,6 +40,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { TypeBadge } from '@/components/TypeBadge';
+import { SpinDirectionSelector, SpinDirection } from '@/components/SpinDirectionSelector';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Collection() {
@@ -82,6 +83,7 @@ export default function Collection() {
       
       const transformedData: CollectionItem[] = (data || []).map(item => ({
         ...item,
+        spin_direction: item.spin_direction as 'L' | 'R' | 'R/L' | null,
         beyblade: item.beyblade ? {
           ...item.beyblade,
           components: item.beyblade.components as BeybladeComponents | null,
@@ -126,6 +128,39 @@ export default function Collection() {
       });
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const updateSpinDirection = async (collectionId: string, direction: SpinDirection) => {
+    try {
+      const { error } = await supabase
+        .from('user_collection')
+        .update({ spin_direction: direction })
+        .eq('id', collectionId);
+
+      if (error) throw error;
+
+      setCollection(prev => prev.map(item => 
+        item.id === collectionId 
+          ? { ...item, spin_direction: direction } 
+          : item
+      ));
+      
+      if (selectedItem?.id === collectionId) {
+        setSelectedItem(prev => prev ? { ...prev, spin_direction: direction } : null);
+      }
+      
+      toast({
+        title: "Direção atualizada",
+        description: `Direção de rotação alterada para ${direction}`,
+      });
+    } catch (error) {
+      console.error('Error updating spin direction:', error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Não foi possível atualizar a direção de rotação.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -361,6 +396,7 @@ export default function Collection() {
                                   key={item.id}
                                   beyblade={item.beyblade}
                                   photoUrl={item.photo_url}
+                                  spinDirection={item.spin_direction}
                                   onClick={() => setSelectedItem(item)}
                                 />
                               )
@@ -505,6 +541,12 @@ export default function Collection() {
                     </div>
                   </div>
                 )}
+
+                {/* Spin Direction */}
+                <SpinDirectionSelector
+                  value={selectedItem.spin_direction}
+                  onChange={(direction) => updateSpinDirection(selectedItem.id, direction)}
+                />
 
                 {/* Delete Button */}
                 <div className="pt-4 border-t">
