@@ -30,11 +30,28 @@ serve(async (req) => {
     // Create Supabase client for storage
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Get the page title first
+    // Get the page title first with timeout
     const pageUrl = `https://beyblade.fandom.com/api.php?action=parse&page=${encodeURIComponent(slug)}&format=json&prop=categories`;
-    const pageResponse = await fetch(pageUrl, {
-      headers: { "User-Agent": "BeyCollection/1.0" },
-    });
+    
+    const pageController = new AbortController();
+    const pageTimeout = setTimeout(() => pageController.abort(), 8000);
+    
+    let pageResponse;
+    try {
+      pageResponse = await fetch(pageUrl, {
+        headers: { "User-Agent": "BeyCollection/1.0" },
+        signal: pageController.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(pageTimeout);
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        console.error("Page fetch timed out");
+        throw new Error("Request timed out - try again");
+      }
+      throw fetchError;
+    }
+    
+    clearTimeout(pageTimeout);
 
     if (!pageResponse.ok) {
       console.error("Fandom API error:", pageResponse.status);
@@ -53,15 +70,21 @@ serve(async (req) => {
 
     console.log("Page title:", pageTitle);
 
-    // Fetch and save the image to Supabase Storage
+    // Fetch and save the image to Supabase Storage with timeout (non-blocking)
     let savedImageUrl = null;
     try {
       const imageApiUrl = `https://beyblade.fandom.com/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&piprop=original`;
       console.log("Fetching image from:", imageApiUrl);
       
+      const imgApiController = new AbortController();
+      const imgApiTimeout = setTimeout(() => imgApiController.abort(), 5000);
+      
       const imageResponse = await fetch(imageApiUrl, {
         headers: { "User-Agent": "BeyCollection/1.0" },
+        signal: imgApiController.signal,
       });
+      
+      clearTimeout(imgApiTimeout);
       
       if (imageResponse.ok) {
         const imageData = await imageResponse.json();
@@ -73,42 +96,55 @@ serve(async (req) => {
           console.log("Found wiki image URL:", originalImageUrl);
           
           if (originalImageUrl) {
-            // Download the image
-            const imgResponse = await fetch(originalImageUrl, {
-              headers: { "User-Agent": "BeyCollection/1.0" },
-            });
+            // Download the image with timeout
+            const imgController = new AbortController();
+            const imgTimeout = setTimeout(() => imgController.abort(), 8000);
             
-            if (imgResponse.ok) {
-              const imageBuffer = await imgResponse.arrayBuffer();
-              const fileName = `wiki/${slug.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`;
+            try {
+              const imgResponse = await fetch(originalImageUrl, {
+                headers: { "User-Agent": "BeyCollection/1.0" },
+                signal: imgController.signal,
+              });
               
-              console.log("Uploading image to storage:", fileName);
+              clearTimeout(imgTimeout);
               
-              // Upload to Supabase Storage
-              const { data: uploadData, error: uploadError } = await supabase.storage
-                .from('beyblade-photos')
-                .upload(fileName, imageBuffer, {
-                  contentType: 'image/jpeg',
-                  upsert: true,
-                });
-              
-              if (uploadError) {
-                console.error("Error uploading image:", uploadError);
-              } else {
-                // Get public URL
-                const { data: urlData } = supabase.storage
-                  .from('beyblade-photos')
-                  .getPublicUrl(fileName);
+              if (imgResponse.ok) {
+                const imageBuffer = await imgResponse.arrayBuffer();
+                const fileName = `wiki/${slug.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`;
                 
-                savedImageUrl = urlData.publicUrl;
-                console.log("Image saved successfully:", savedImageUrl);
+                console.log("Uploading image to storage:", fileName);
+                
+                // Upload to Supabase Storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                  .from('beyblade-photos')
+                  .upload(fileName, imageBuffer, {
+                    contentType: 'image/jpeg',
+                    upsert: true,
+                  });
+                
+                if (uploadError) {
+                  console.error("Error uploading image:", uploadError);
+                } else {
+                  // Get public URL
+                  const { data: urlData } = supabase.storage
+                    .from('beyblade-photos')
+                    .getPublicUrl(fileName);
+                  
+                  savedImageUrl = urlData.publicUrl;
+                  console.log("Image saved successfully:", savedImageUrl);
+                }
               }
+            } catch (imgDownloadError) {
+              clearTimeout(imgTimeout);
+              console.error("Image download timed out or failed:", imgDownloadError);
+              // Continue without image - don't block the response
             }
           }
         }
       }
     } catch (imgError) {
-      console.error("Error fetching/saving image:", imgError);
+      console.error("Error fetching/saving image (continuing without image):", imgError);
+      // Continue without image - don't block the response
     }
 
     // Use Gemini to search for information in Portuguese
