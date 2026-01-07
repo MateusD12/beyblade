@@ -50,6 +50,7 @@ export interface CollectionItem {
   condition: string;
   notes?: string | null;
   acquired_at?: string | null;
+  spin_direction?: 'L' | 'R' | 'R/L' | null;
   created_at: string;
   updated_at: string;
   beyblade?: Beyblade;
@@ -77,8 +78,13 @@ export type BeybladeType = 'Attack' | 'Defense' | 'Stamina' | 'Balance';
 export const BEYBLADE_TYPES: BeybladeType[] = ['Attack', 'Defense', 'Stamina', 'Balance'];
 
 export const TYPE_COLORS: Record<string, string> = {
+  // Português (banco de dados)
+  Ataque: 'type-attack',
+  Defesa: 'type-defense',
+  Stamina: 'type-stamina',
+  Equilíbrio: 'type-balance',
+  // English fallback
   Attack: 'type-attack',
   Defense: 'type-defense',
-  Stamina: 'type-stamina',
   Balance: 'type-balance',
 };
