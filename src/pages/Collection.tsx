@@ -8,6 +8,7 @@ import { CollectionItem, Beyblade, BeybladeComponents, BeybladeSpecs, ComponentD
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap, ExternalLink } from 'lucide-react';
+import { getBeybladeImageUrl } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -131,10 +132,12 @@ export default function Collection() {
   const getRatchetComponent = (components: BeybladeComponents) => components.ratchet || components.disk;
   const getBitComponent = (components: BeybladeComponents) => components.bit || components.driver;
 
-  // Get the image to display (user photo > wiki image > placeholder)
+  // Get the image to display (user photo > wiki image via proxy > placeholder)
   const getDisplayImage = (item: CollectionItem) => {
     if (item.photo_url) return item.photo_url;
-    if (item.beyblade?.image_url) return item.beyblade.image_url;
+    if (item.beyblade?.image_url) {
+      return getBeybladeImageUrl(item.beyblade.image_url, item.beyblade.wiki_url);
+    }
     return null;
   };
 

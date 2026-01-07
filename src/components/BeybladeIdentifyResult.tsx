@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { TypeBadge } from '@/components/TypeBadge';
 import { IdentifyResponse } from '@/types/beyblade';
 import { Check, X, Target, Shield, Zap, Layers, ExternalLink } from 'lucide-react';
+import { getBeybladeImageUrl } from '@/lib/utils';
 
 interface BeybladeIdentifyResultProps {
   result: IdentifyResponse;
@@ -64,7 +65,7 @@ export function BeybladeIdentifyResult({
         {result.image_url && (
           <div className="flex justify-center">
             <img 
-              src={result.image_url} 
+              src={getBeybladeImageUrl(result.image_url, result.wiki_url) || ''} 
               alt={result.name}
               className="w-48 h-48 object-contain rounded-lg bg-muted/50"
               referrerPolicy="no-referrer"

@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { TypeBadge } from '@/components/TypeBadge';
 import { Beyblade } from '@/types/beyblade';
 import { Target, Shield, Zap } from 'lucide-react';
+import { getBeybladeImageUrl } from '@/lib/utils';
 
 interface BeybladeCardProps {
   beyblade: Beyblade;
@@ -21,7 +22,7 @@ export function BeybladeCard({ beyblade, photoUrl, onClick }: BeybladeCardProps)
         {(photoUrl || beyblade.image_url) ? (
           <>
             <img 
-              src={photoUrl || beyblade.image_url || ''} 
+              src={photoUrl || getBeybladeImageUrl(beyblade.image_url, beyblade.wiki_url) || ''} 
               alt={beyblade.name}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               referrerPolicy="no-referrer"

@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.fetch-beyblade-details]
 verify_jwt = false
+
+[functions.beyblade-image]
+verify_jwt = false
