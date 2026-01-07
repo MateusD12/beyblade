@@ -12,6 +12,31 @@ interface BeybladeIdentifyResultProps {
   isLoading?: boolean;
 }
 
+// Mapeamento de chaves para labels em português
+const COMPONENT_LABELS: Record<string, string> = {
+  // Beyblade X
+  blade: 'Lâmina',
+  ratchet: 'Catraca',
+  bit: 'Ponteira',
+  // Burst clássico
+  layer: 'Camada',
+  disk: 'Disco',
+  driver: 'Driver',
+  // Burst QuadStrike
+  energy_layer: 'Camada de Energia',
+  strike_chip: 'Strike Chip',
+  gravity_ring: 'Anel de Gravidade',
+  forge_disc: 'Disco Forjado',
+  performance_tip: 'Ponta de Desempenho',
+  armor_tip: 'Ponta de Armadura',
+  fusion_ring: 'Anel de Fusão',
+  // Metal Fight
+  face_bolt: 'Parafuso Facial',
+  energy_ring: 'Anel de Energia',
+  fusion_wheel: 'Roda de Fusão',
+  spin_track: 'Trilho de Giro',
+};
+
 export function BeybladeIdentifyResult({ 
   result, 
   onConfirm, 
@@ -39,10 +64,49 @@ export function BeybladeIdentifyResult({
     );
   }
 
-  // Get component name (supports both Burst and X naming)
-  const getBladeComponent = () => result.components?.blade || result.components?.layer;
-  const getRatchetComponent = () => result.components?.ratchet || result.components?.disk;
-  const getBitComponent = () => result.components?.bit || result.components?.driver;
+  // Renderizar componentes dinamicamente
+  const renderComponents = () => {
+    if (!result.components) return null;
+    
+    // Descrições podem estar em components.descriptions ou component_descriptions
+    const descriptions = (result.components as any)?.descriptions || 
+                         result.component_descriptions || {};
+    
+    const componentEntries = Object.entries(result.components)
+      .filter(([key, value]) => {
+        if (key === 'descriptions') return false;
+        if (!value || typeof value !== 'string') return false;
+        const lowerValue = value.toLowerCase();
+        if (lowerValue.includes('não aplicável') || lowerValue.includes('nao aplicavel')) return false;
+        return true;
+      });
+
+    if (componentEntries.length === 0) return null;
+
+    return (
+      <div className="space-y-2">
+        <h4 className="font-semibold flex items-center gap-2">
+          <Layers className="w-4 h-4" />
+          Componentes
+        </h4>
+        <div className="space-y-2 text-sm">
+          {componentEntries.map(([key, value]) => (
+            <div key={key} className="p-3 bg-muted rounded-md">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-muted-foreground">
+                  {COMPONENT_LABELS[key] || key}:
+                </span>
+                <span className="font-medium">{value as string}</span>
+              </div>
+              {descriptions[key] && (
+                <p className="text-xs text-muted-foreground">{descriptions[key]}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Card className="border-primary/50 bg-primary/5">
@@ -112,49 +176,7 @@ export function BeybladeIdentifyResult({
           )}
         </div>
 
-        {result.components && (
-          <div className="space-y-2">
-            <h4 className="font-semibold flex items-center gap-2">
-              <Layers className="w-4 h-4" />
-              Componentes
-            </h4>
-            <div className="space-y-2 text-sm">
-              {getBladeComponent() && (
-                <div className="p-3 bg-muted rounded-md">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-muted-foreground">Lâmina:</span>
-                    <span className="font-medium">{getBladeComponent()}</span>
-                  </div>
-                  {result.component_descriptions?.blade && (
-                    <p className="text-xs text-muted-foreground">{result.component_descriptions.blade}</p>
-                  )}
-                </div>
-              )}
-              {getRatchetComponent() && (
-                <div className="p-3 bg-muted rounded-md">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-muted-foreground">Catraca:</span>
-                    <span className="font-medium">{getRatchetComponent()}</span>
-                  </div>
-                  {result.component_descriptions?.ratchet && (
-                    <p className="text-xs text-muted-foreground">{result.component_descriptions.ratchet}</p>
-                  )}
-                </div>
-              )}
-              {getBitComponent() && (
-                <div className="p-3 bg-muted rounded-md">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-muted-foreground">Ponteira:</span>
-                    <span className="font-medium">{getBitComponent()}</span>
-                  </div>
-                  {result.component_descriptions?.bit && (
-                    <p className="text-xs text-muted-foreground">{result.component_descriptions.bit}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {renderComponents()}
 
         {result.specs && (
           <div className="space-y-2">
