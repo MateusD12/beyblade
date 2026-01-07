@@ -36,6 +36,7 @@ export interface Beyblade {
   specs?: BeybladeSpecs | null;
   description?: string | null;
   image_url?: string | null;
+  wiki_url?: string | null;
   created_at: string;
   updated_at: string;
 }

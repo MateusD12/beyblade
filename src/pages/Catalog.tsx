@@ -6,6 +6,7 @@ import { Beyblade, BeybladeComponents, BeybladeSpecs, BEYBLADE_TYPES } from '@/t
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search, Filter } from 'lucide-react';
+import { getBeybladeImageUrl } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -144,7 +145,7 @@ export default function Catalog() {
               {selectedBeyblade.image_url && (
                 <div className="relative">
                   <img 
-                    src={selectedBeyblade.image_url} 
+                    src={getBeybladeImageUrl(selectedBeyblade.image_url, selectedBeyblade.wiki_url) || ''} 
                     alt={selectedBeyblade.name}
                     className="w-full aspect-square object-cover rounded-lg"
                     referrerPolicy="no-referrer"
