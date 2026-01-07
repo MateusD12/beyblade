@@ -277,6 +277,11 @@ export default function Collection() {
                               {getBladeComponent(selectedItem.beyblade.components as BeybladeComponents)}
                             </span>
                           </div>
+                          {(selectedItem.beyblade.components as any).descriptions?.blade && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {(selectedItem.beyblade.components as any).descriptions.blade}
+                            </p>
+                          )}
                         </div>
                       )}
                       {getRatchetComponent(selectedItem.beyblade.components as BeybladeComponents) && (
@@ -287,6 +292,11 @@ export default function Collection() {
                               {getRatchetComponent(selectedItem.beyblade.components as BeybladeComponents)}
                             </span>
                           </div>
+                          {(selectedItem.beyblade.components as any).descriptions?.ratchet && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {(selectedItem.beyblade.components as any).descriptions.ratchet}
+                            </p>
+                          )}
                         </div>
                       )}
                       {getBitComponent(selectedItem.beyblade.components as BeybladeComponents) && (
@@ -297,6 +307,11 @@ export default function Collection() {
                               {getBitComponent(selectedItem.beyblade.components as BeybladeComponents)}
                             </span>
                           </div>
+                          {(selectedItem.beyblade.components as any).descriptions?.bit && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {(selectedItem.beyblade.components as any).descriptions.bit}
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
