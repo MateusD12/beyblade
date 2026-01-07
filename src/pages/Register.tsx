@@ -24,6 +24,7 @@ export default function Register() {
   const [isSaving, setIsSaving] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [identifyResult, setIdentifyResult] = useState<IdentifyResponse | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleImageCapture = async (imageBase64: string) => {
     setCapturedImage(imageBase64);
@@ -56,32 +57,51 @@ export default function Register() {
   const handleSearchSelect = async (slug: string, name: string) => {
     console.log("handleSearchSelect called with:", { slug, name });
     setIsIdentifying(true);
+    setRetryCount(0);
 
-    try {
-      console.log("Invoking fetch-beyblade-details with slug:", slug);
-      const { data, error } = await supabase.functions.invoke("fetch-beyblade-details", {
-        body: { slug },
-      });
+    const maxRetries = 2;
+    let lastError: Error | null = null;
 
-      console.log("fetch-beyblade-details response:", { data, error });
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          setRetryCount(attempt);
+          console.log(`Retry attempt ${attempt} for slug:`, slug);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
 
-      if (error) throw error;
+        console.log("Invoking fetch-beyblade-details with slug:", slug);
+        const { data, error } = await supabase.functions.invoke("fetch-beyblade-details", {
+          body: { slug },
+        });
 
-      if (data?.error) {
-        throw new Error(data.error);
+        console.log("fetch-beyblade-details response:", { data, error });
+
+        if (error) throw error;
+
+        if (data?.error) {
+          throw new Error(data.error);
+        }
+
+        setIdentifyResult(data);
+        setRetryCount(0);
+        setIsIdentifying(false);
+        return; // Success, exit
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Unknown error");
+        console.error(`Attempt ${attempt + 1} failed:`, error);
       }
-
-      setIdentifyResult(data);
-    } catch (error) {
-      console.error("Error fetching beyblade details:", error);
-      toast({
-        title: "Erro ao buscar detalhes",
-        description: error instanceof Error ? error.message : "Não foi possível buscar os detalhes da Beyblade. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsIdentifying(false);
     }
+
+    // All retries failed
+    console.error("All attempts failed:", lastError);
+    toast({
+      title: "Erro ao buscar detalhes",
+      description: "Servidor lento. Tente novamente em alguns segundos.",
+      variant: "destructive",
+    });
+    setRetryCount(0);
+    setIsIdentifying(false);
   };
 
   const handleConfirm = async () => {
@@ -278,9 +298,11 @@ export default function Register() {
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
             <p className="text-muted-foreground">
-              {mode === "search"
-                ? "Buscando informações na Beyblade Fandom Wiki..."
-                : "Identificando sua Beyblade..."}
+              {retryCount > 0
+                ? `Tentando novamente (${retryCount})...`
+                : mode === "search"
+                  ? "Buscando informações na Beyblade Fandom Wiki..."
+                  : "Identificando sua Beyblade..."}
             </p>
           </div>
         )}

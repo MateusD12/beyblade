@@ -30,6 +30,7 @@ export function BeybladeSearch({
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -47,13 +48,22 @@ export function BeybladeSearch({
       clearTimeout(debounceRef.current);
     }
 
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     if (query.length < 2) {
       setResults([]);
       setShowResults(false);
+      setIsSearching(false);
       return;
     }
 
     debounceRef.current = setTimeout(async () => {
+      // Create new abort controller for this request
+      abortControllerRef.current = new AbortController();
+      
       setIsSearching(true);
       console.log("Searching for:", query);
       try {
@@ -61,12 +71,21 @@ export function BeybladeSearch({
           body: { query },
         });
 
+        // Check if request was aborted
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
+
         if (error) throw error;
         
         console.log("Search results:", data.results);
         setResults(data.results || []);
         setShowResults(true);
       } catch (error) {
+        // Ignore abort errors
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
         console.error("Search error:", error);
         setResults([]);
       } finally {
@@ -77,6 +96,9 @@ export function BeybladeSearch({
     return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [query]);

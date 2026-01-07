@@ -22,14 +22,30 @@ serve(async (req) => {
 
     console.log("Searching Beyblade Fandom for:", query);
 
-    // Use MediaWiki API to search
+    // Use MediaWiki API to search with timeout
     const searchUrl = `https://beyblade.fandom.com/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=15&format=json`;
     
-    const response = await fetch(searchUrl, {
-      headers: {
-        "User-Agent": "BeyCollection/1.0",
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    let response;
+    try {
+      response = await fetch(searchUrl, {
+        headers: {
+          "User-Agent": "BeyCollection/1.0",
+        },
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        console.error("Search request timed out");
+        throw new Error("Search timed out - try again");
+      }
+      throw fetchError;
+    }
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       console.error("Fandom API error:", response.status);
