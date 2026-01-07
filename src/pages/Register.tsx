@@ -133,6 +133,14 @@ export default function Register() {
         // Add to catalog - use wiki image if no user photo
         const catalogImageUrl = photoUrl || identifyResult.image_url || null;
         
+        // Build components with descriptions included
+        const componentsData = identifyResult.components
+          ? {
+              ...identifyResult.components,
+              descriptions: identifyResult.component_descriptions || null,
+            }
+          : null;
+        
         const { data: newBeyblade, error: catalogError } = await supabase
           .from("beyblade_catalog")
           .insert([
@@ -142,8 +150,8 @@ export default function Register() {
               series: identifyResult.series!,
               generation: identifyResult.generation!,
               type: identifyResult.type!,
-              components: identifyResult.components
-                ? JSON.parse(JSON.stringify(identifyResult.components))
+              components: componentsData
+                ? JSON.parse(JSON.stringify(componentsData))
                 : null,
               specs: identifyResult.specs
                 ? JSON.parse(JSON.stringify(identifyResult.specs))

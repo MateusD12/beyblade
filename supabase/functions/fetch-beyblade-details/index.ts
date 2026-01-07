@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,8 @@ serve(async (req) => {
   try {
     const { slug } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
@@ -24,13 +27,13 @@ serve(async (req) => {
 
     console.log("Fetching Beyblade details for:", slug);
 
-    // Fetch the wiki page content using MediaWiki API
-    const pageUrl = `https://beyblade.fandom.com/api.php?action=parse&page=${encodeURIComponent(slug)}&format=json&prop=text|categories`;
-    
+    // Create Supabase client for storage
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+    // Get the page title first
+    const pageUrl = `https://beyblade.fandom.com/api.php?action=parse&page=${encodeURIComponent(slug)}&format=json&prop=categories`;
     const pageResponse = await fetch(pageUrl, {
-      headers: {
-        "User-Agent": "BeyCollection/1.0",
-      },
+      headers: { "User-Agent": "BeyCollection/1.0" },
     });
 
     if (!pageResponse.ok) {
@@ -45,14 +48,17 @@ serve(async (req) => {
       throw new Error("Beyblade page not found");
     }
 
-    const htmlContent = pageData.parse?.text?.["*"] || "";
     const categories = pageData.parse?.categories?.map((c: { "*": string }) => c["*"]) || [];
     const pageTitle = pageData.parse?.title || slug;
 
-    // Fetch the main image using pageimages API
-    let imageUrl = null;
+    console.log("Page title:", pageTitle);
+
+    // Fetch and save the image to Supabase Storage
+    let savedImageUrl = null;
     try {
-      const imageApiUrl = `https://beyblade.fandom.com/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&pithumbsize=500`;
+      const imageApiUrl = `https://beyblade.fandom.com/api.php?action=query&titles=${encodeURIComponent(slug)}&prop=pageimages&format=json&piprop=original`;
+      console.log("Fetching image from:", imageApiUrl);
+      
       const imageResponse = await fetch(imageApiUrl, {
         headers: { "User-Agent": "BeyCollection/1.0" },
       });
@@ -62,59 +68,93 @@ serve(async (req) => {
         const pages = imageData.query?.pages;
         if (pages) {
           const pageId = Object.keys(pages)[0];
-          imageUrl = pages[pageId]?.thumbnail?.source || null;
-          console.log("Found image URL:", imageUrl);
+          const originalImageUrl = pages[pageId]?.original?.source || pages[pageId]?.thumbnail?.source;
+          
+          console.log("Found wiki image URL:", originalImageUrl);
+          
+          if (originalImageUrl) {
+            // Download the image
+            const imgResponse = await fetch(originalImageUrl, {
+              headers: { "User-Agent": "BeyCollection/1.0" },
+            });
+            
+            if (imgResponse.ok) {
+              const imageBuffer = await imgResponse.arrayBuffer();
+              const fileName = `wiki/${slug.toLowerCase().replace(/[^a-z0-9]/g, '-')}.jpg`;
+              
+              console.log("Uploading image to storage:", fileName);
+              
+              // Upload to Supabase Storage
+              const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('beyblade-photos')
+                .upload(fileName, imageBuffer, {
+                  contentType: 'image/jpeg',
+                  upsert: true,
+                });
+              
+              if (uploadError) {
+                console.error("Error uploading image:", uploadError);
+              } else {
+                // Get public URL
+                const { data: urlData } = supabase.storage
+                  .from('beyblade-photos')
+                  .getPublicUrl(fileName);
+                
+                savedImageUrl = urlData.publicUrl;
+                console.log("Image saved successfully:", savedImageUrl);
+              }
+            }
+          }
         }
       }
     } catch (imgError) {
-      console.error("Error fetching image:", imgError);
+      console.error("Error fetching/saving image:", imgError);
     }
 
-    // Use Gemini to extract structured data from the HTML content
-    const systemPrompt = `Você é um especialista em Beyblades. Analise o conteúdo HTML de uma página da wiki Beyblade Fandom e extraia informações estruturadas.
+    // Use Gemini to search for information in Portuguese
+    const searchPrompt = `Você é um especialista em Beyblade. Busque informações sobre a Beyblade "${pageTitle}" e retorne dados estruturados em português brasileiro.
 
 IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto adicional:
 
 {
   "identified": true,
   "confidence": "high",
-  "name": "Nome oficial da Beyblade conforme aparece na página",
-  "name_hasbro": "Nome da versão Hasbro (se mencionado)",
-  "series": "Nome da série (Beyblade X, Beyblade Burst, Metal Fight, etc)",
-  "generation": "Geração específica (ex: Burst GT, Dynamite Battle, Xtreme Gear, Basic Line, etc)",
-  "type": "Tipo: Attack/Defense/Stamina/Balance (baseado nas categorias ou conteúdo)",
+  "name": "${pageTitle}",
+  "name_hasbro": "Nome da versão Hasbro (se houver)",
+  "series": "Série (Beyblade X, Beyblade Burst, Metal Fight, etc)",
+  "generation": "Linha específica (Basic Line, Pro Series, Xtreme Gear, etc)",
+  "type": "Tipo em português: Ataque/Defesa/Resistência/Equilíbrio",
   "components": {
-    "blade": "Nome do Blade/Layer",
-    "ratchet": "Nome do Ratchet/Disk (ex: 3-60, 4-80)",
-    "bit": "Nome do Bit/Driver (ex: F, B, HN)"
+    "blade": "Nome da Lâmina/Blade",
+    "ratchet": "Nome da Catraca/Ratchet (ex: 3-60, 4-80)",
+    "bit": "Nome da Ponteira/Bit (ex: Flat, Ball, High Needle)"
   },
   "component_descriptions": {
-    "blade": "Descrição detalhada do Blade/Layer em português - o que ele faz, suas características",
-    "ratchet": "Descrição detalhada do Ratchet/Disk em português - altura, peso, características",
-    "bit": "Descrição detalhada do Bit/Driver em português - tipo de ponta, comportamento"
+    "blade": "Descrição detalhada da lâmina em português - design, características, vantagens",
+    "ratchet": "Descrição detalhada da catraca em português - altura, pontos de contato, peso",
+    "bit": "Descrição detalhada da ponteira em português - tipo de movimento, comportamento na arena"
   },
   "specs": {
-    "weight": "Peso se mencionado",
-    "attack": "Valor de ataque se mencionado (1-10)",
-    "defense": "Valor de defesa se mencionado (1-10)",
-    "stamina": "Valor de stamina se mencionado (1-10)"
+    "weight": "Peso aproximado em gramas",
+    "attack": "Valor de ataque (1-10)",
+    "defense": "Valor de defesa (1-10)",
+    "stamina": "Valor de resistência (1-10)"
   },
-  "description": "Breve descrição sobre esta Beyblade baseada no conteúdo da página, em português",
-  "release_date": "Data de lançamento se mencionada",
-  "product_code": "Código do produto se mencionado"
+  "description": "Descrição completa desta Beyblade em português, incluindo suas características, pontos fortes e estratégias de uso"
 }
 
-Dicas para identificar o tipo:
-- Se as categorias incluem "Attack" ou "Attack Type" → type: "Attack"
-- Se as categorias incluem "Defense" ou "Defense Type" → type: "Defense"
-- Se as categorias incluem "Stamina" ou "Stamina Type" → type: "Stamina"
-- Se as categorias incluem "Balance" ou "Balance Type" → type: "Balance"
+Categorias da wiki para referência: ${categories.join(", ")}
 
-Para Beyblade X, os componentes são: Blade + Ratchet + Bit
-Para Beyblade Burst, os componentes são: Layer + Disk + Driver
-Para Metal Fight, os componentes são: Face Bolt + Energy Ring + Fusion Wheel + Spin Track + Performance Tip
+Dicas:
+- Se as categorias incluem "Attack" → type: "Ataque"
+- Se as categorias incluem "Defense" → type: "Defesa"  
+- Se as categorias incluem "Stamina" → type: "Resistência"
+- Se as categorias incluem "Balance" → type: "Equilíbrio"
 
-IMPORTANTE: Extraia as descrições dos componentes do conteúdo da página. Procure por seções que descrevem cada parte e traduza para português.`;
+Para Beyblade X: Blade (Lâmina) + Ratchet (Catraca) + Bit (Ponteira)
+Para Beyblade Burst: Layer (Camada) + Disk (Disco) + Driver (Driver)
+
+TODAS as informações devem estar em português brasileiro.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -125,10 +165,9 @@ IMPORTANTE: Extraia as descrições dos componentes do conteúdo da página. Pro
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: `Título da página: ${pageTitle}\n\nCategorias: ${categories.join(", ")}\n\nConteúdo HTML da página:\n${htmlContent.substring(0, 15000)}`,
+          { 
+            role: "user", 
+            content: searchPrompt
           },
         ],
       }),
@@ -147,27 +186,32 @@ IMPORTANTE: Extraia as descrições dos componentes do conteúdo da página. Pro
       throw new Error("No response from AI");
     }
 
+    console.log("AI response received");
+
     // Parse the JSON response from the AI
     let beyblade;
     try {
       const cleanContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       beyblade = JSON.parse(cleanContent);
-      // Ensure the name matches the page title
       beyblade.name = pageTitle;
       beyblade.wiki_url = `https://beyblade.fandom.com/wiki/${slug}`;
-      // Add the image URL from the separate API call
-      beyblade.image_url = imageUrl;
+      beyblade.image_url = savedImageUrl;
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Return basic info from the page
+      // Determine type from categories
+      let type = "Equilíbrio";
+      if (categories.some((c: string) => c.toLowerCase().includes("attack"))) type = "Ataque";
+      else if (categories.some((c: string) => c.toLowerCase().includes("defense"))) type = "Defesa";
+      else if (categories.some((c: string) => c.toLowerCase().includes("stamina"))) type = "Resistência";
+      
       beyblade = {
         identified: true,
         confidence: "medium",
         name: pageTitle,
-        series: categories.find((c: string) => c.includes("Beyblade")) || "Unknown",
-        type: categories.find((c: string) => ["Attack", "Defense", "Stamina", "Balance"].some(t => c.includes(t))) || "Balance",
+        series: "Beyblade",
+        type: type,
         wiki_url: `https://beyblade.fandom.com/wiki/${slug}`,
-        image_url: imageUrl,
+        image_url: savedImageUrl,
       };
     }
 
