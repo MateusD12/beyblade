@@ -7,7 +7,6 @@ import { AuthProvider } from "@/hooks/useAuth";
 import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import Collection from "./pages/Collection";
-import Catalog from "./pages/Catalog";
 import Stats from "./pages/Stats";
 import NotFound from "./pages/NotFound";
 
@@ -24,7 +23,6 @@ const App = () => (
             <Route path="/" element={<Collection />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/catalog" element={<Catalog />} />
             <Route path="/stats" element={<Stats />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

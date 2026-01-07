@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 const navItems = [
   { href: '/', icon: BookOpen, label: 'Coleção' },
   { href: '/register', icon: PlusCircle, label: 'Registrar' },
-  { href: '/catalog', icon: BookOpen, label: 'Catálogo' },
   { href: '/stats', icon: BarChart3, label: 'Estatísticas' },
 ];
 

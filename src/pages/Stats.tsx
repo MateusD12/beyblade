@@ -15,10 +15,10 @@ interface Stats {
 }
 
 const TYPE_CHART_COLORS: Record<string, string> = {
-  Attack: '#ef4444',
-  Defense: '#3b82f6',
+  Ataque: '#ef4444',
+  Defesa: '#3b82f6',
   Stamina: '#22c55e',
-  Balance: '#a855f7',
+  Equilíbrio: '#a855f7',
 };
 
 export default function Stats() {
@@ -173,10 +173,10 @@ export default function Stats() {
                   <div className="flex flex-col justify-center gap-3">
                     {stats.byType.map((type) => (
                       <div key={type.name} className="flex items-center gap-3">
-                        {type.name === 'Attack' && <Target className="w-5 h-5 text-red-500" />}
-                        {type.name === 'Defense' && <Shield className="w-5 h-5 text-blue-500" />}
+                        {type.name === 'Ataque' && <Target className="w-5 h-5 text-red-500" />}
+                        {type.name === 'Defesa' && <Shield className="w-5 h-5 text-blue-500" />}
                         {type.name === 'Stamina' && <Zap className="w-5 h-5 text-green-500" />}
-                        {type.name === 'Balance' && <Scale className="w-5 h-5 text-purple-500" />}
+                        {type.name === 'Equilíbrio' && <Scale className="w-5 h-5 text-purple-500" />}
                         <span className="flex-1">{type.name}</span>
                         <span className="font-bold">{type.value}</span>
                       </div>
