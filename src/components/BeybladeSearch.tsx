@@ -55,6 +55,7 @@ export function BeybladeSearch({
 
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true);
+      console.log("Searching for:", query);
       try {
         const { data, error } = await supabase.functions.invoke("search-beyblade", {
           body: { query },
@@ -62,6 +63,7 @@ export function BeybladeSearch({
 
         if (error) throw error;
         
+        console.log("Search results:", data.results);
         setResults(data.results || []);
         setShowResults(true);
       } catch (error) {
@@ -131,15 +133,19 @@ export function BeybladeSearch({
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-[100] w-full mt-1 bg-card border border-border rounded-md shadow-xl max-h-60 overflow-y-auto">
           {results.map((result, index) => (
             <button
-              key={index}
+              key={`${result.slug}-${index}`}
               type="button"
-              className="w-full px-4 py-2 text-left hover:bg-accent transition-colors text-sm"
-              onClick={() => handleSelect(result)}
+              className="w-full px-4 py-3 text-left hover:bg-primary/10 active:bg-primary/20 transition-colors text-sm border-b border-border/50 last:border-b-0"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                console.log("Selected result:", result);
+                handleSelect(result);
+              }}
             >
-              {result.name}
+              <span className="font-medium">{result.name}</span>
             </button>
           ))}
         </div>

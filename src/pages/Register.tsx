@@ -54,21 +54,29 @@ export default function Register() {
   };
 
   const handleSearchSelect = async (slug: string, name: string) => {
+    console.log("handleSearchSelect called with:", { slug, name });
     setIsIdentifying(true);
 
     try {
+      console.log("Invoking fetch-beyblade-details with slug:", slug);
       const { data, error } = await supabase.functions.invoke("fetch-beyblade-details", {
         body: { slug },
       });
 
+      console.log("fetch-beyblade-details response:", { data, error });
+
       if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
 
       setIdentifyResult(data);
     } catch (error) {
       console.error("Error fetching beyblade details:", error);
       toast({
         title: "Erro ao buscar detalhes",
-        description: "Não foi possível buscar os detalhes da Beyblade. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível buscar os detalhes da Beyblade. Tente novamente.",
         variant: "destructive",
       });
     } finally {
