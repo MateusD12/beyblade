@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { BeybladeCard } from '@/components/BeybladeCard';
@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CollectionItem, Beyblade, BeybladeComponents, BeybladeSpecs } from '@/types/beyblade';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap } from 'lucide-react';
+import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap, Camera } from 'lucide-react';
 import { getBeybladeImageUrl } from '@/lib/utils';
 import { getSeriesOrder, getGenerationOrder } from '@/lib/beybladeOrder';
 import {
@@ -52,6 +52,8 @@ export default function Collection() {
   const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<CollectionItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -161,6 +163,61 @@ export default function Collection() {
         description: "Não foi possível atualizar a direção de rotação.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedItem) return;
+    
+    setIsUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user!.id}/${selectedItem.id}_${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('beyblade-photos')
+        .upload(fileName, file, { upsert: true });
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('beyblade-photos')
+        .getPublicUrl(fileName);
+      
+      const { error: updateError } = await supabase
+        .from('user_collection')
+        .update({ photo_url: urlData.publicUrl })
+        .eq('id', selectedItem.id);
+      
+      if (updateError) throw updateError;
+      
+      setCollection(prev => prev.map(item => 
+        item.id === selectedItem.id 
+          ? { ...item, photo_url: urlData.publicUrl } 
+          : item
+      ));
+      setSelectedItem(prev => prev 
+        ? { ...prev, photo_url: urlData.publicUrl } 
+        : null
+      );
+      
+      toast({
+        title: "Foto atualizada",
+        description: "A foto foi alterada com sucesso!",
+      });
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      toast({
+        title: "Erro ao atualizar foto",
+        description: "Não foi possível fazer o upload da foto.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      if (photoInputRef.current) {
+        photoInputRef.current.value = '';
+      }
     }
   };
 
@@ -486,27 +543,62 @@ export default function Collection() {
               </DialogHeader>
               
               {/* Image */}
-              {getDisplayImage(selectedItem) && (
-                <div className="flex justify-center">
-                  <img 
-                    src={getDisplayImage(selectedItem)!} 
-                    alt={selectedItem.beyblade.name}
-                    className="w-full max-w-xs aspect-square object-contain rounded-lg bg-muted/50"
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                    onError={(e) => {
-                      const target = e.currentTarget;
-                      target.style.display = 'none';
-                      const fallback = target.nextElementSibling;
-                      if (fallback) fallback.classList.remove('hidden');
-                    }}
-                  />
-                  <div className="hidden w-full max-w-xs aspect-square flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+              <div className="relative flex justify-center">
+                {getDisplayImage(selectedItem) ? (
+                  <>
+                    <img 
+                      src={getDisplayImage(selectedItem)!} 
+                      alt={selectedItem.beyblade.name}
+                      className="w-full max-w-xs aspect-square object-contain rounded-lg bg-muted/50"
+                      referrerPolicy="no-referrer"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        target.style.display = 'none';
+                        const fallback = target.nextElementSibling;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                    <div className="hidden w-full max-w-xs aspect-square flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+                      <span className="text-4xl mb-2">🖼️</span>
+                      <span className="text-sm text-muted-foreground">Imagem indisponível</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full max-w-xs aspect-square flex flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
                     <span className="text-4xl mb-2">🖼️</span>
-                    <span className="text-sm text-muted-foreground">Imagem indisponível</span>
+                    <span className="text-sm text-muted-foreground">Sem foto</span>
                   </div>
-                </div>
-              )}
+                )}
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="absolute bottom-2 right-2 bg-background/90 backdrop-blur-sm"
+                  onClick={() => photoInputRef.current?.click()}
+                  disabled={isUploadingPhoto}
+                >
+                  {isUploadingPhoto ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Camera className="w-4 h-4 mr-1" />
+                      Alterar Foto
+                    </>
+                  )}
+                </Button>
+                
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
+              </div>
               
               <div className="space-y-4">
                 {/* Type and Series */}
