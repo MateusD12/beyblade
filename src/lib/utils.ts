@@ -23,9 +23,9 @@ export function getBeybladeImageUrl(
 
   // If it's a Fandom/Wikia URL, use our proxy
   if (imageUrl.includes('static.wikia.nocookie.net') || imageUrl.includes('fandom.com')) {
-    // Try to extract slug from wiki URL first
     let slug: string | null = null;
     
+    // Try to extract slug from wiki URL first (most reliable)
     if (wikiUrl) {
       const match = wikiUrl.match(/\/wiki\/([^?#]+)/);
       if (match) {
@@ -33,10 +33,11 @@ export function getBeybladeImageUrl(
       }
     }
     
-    // Fallback: try to extract from image URL path
+    // Fallback: extract from image URL path
+    // Pattern: /images/X/XX/FileName.ext/revision/... or /images/X/XX/FileName.ext
     if (!slug) {
-      // Pattern: /beyblade/images/X/XX/FileName.ext
-      const imgMatch = imageUrl.match(/\/beyblade\/images\/[a-f0-9]\/[a-f0-9]{2}\/([^./]+)\.[a-zA-Z]+/i);
+      // More robust regex that captures the filename without extension
+      const imgMatch = imageUrl.match(/\/images\/[a-f0-9]\/[a-f0-9]{2}\/([^/.]+)\.[a-zA-Z]+/i);
       if (imgMatch) {
         slug = imgMatch[1];
       }

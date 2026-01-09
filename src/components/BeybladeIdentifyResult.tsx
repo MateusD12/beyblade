@@ -1,14 +1,16 @@
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { TypeBadge } from '@/components/TypeBadge';
 import { IdentifyResponse } from '@/types/beyblade';
-import { Check, X, Target, Shield, Zap, Layers, ExternalLink } from 'lucide-react';
+import { Check, X, Target, Shield, Zap, Layers, ExternalLink, Camera, Upload } from 'lucide-react';
 import { getBeybladeImageUrl } from '@/lib/utils';
 
 interface BeybladeIdentifyResultProps {
   result: IdentifyResponse;
   onConfirm: () => void;
   onReject: () => void;
+  onCustomImage?: (imageBase64: string) => void;
   isLoading?: boolean;
 }
 
@@ -41,8 +43,25 @@ export function BeybladeIdentifyResult({
   result, 
   onConfirm, 
   onReject,
+  onCustomImage,
   isLoading 
 }: BeybladeIdentifyResultProps) {
+  const [customImagePreview, setCustomImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCustomImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setCustomImagePreview(base64);
+      onCustomImage?.(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (!result.identified) {
     return (
       <Card className="border-destructive/50 bg-destructive/5">
@@ -125,38 +144,61 @@ export function BeybladeIdentifyResult({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Wiki Image */}
-        {result.image_url && (
-          <div className="flex justify-center">
-            <img 
-              src={getBeybladeImageUrl(result.image_url, result.wiki_url) || ''} 
-              alt={result.name}
-              className="w-48 h-48 object-contain rounded-lg bg-muted/50"
-              referrerPolicy="no-referrer"
-              loading="lazy"
-              onError={(e) => {
-                const target = e.currentTarget;
-                target.style.display = 'none';
-                const fallback = target.nextElementSibling;
-                if (fallback) fallback.classList.remove('hidden');
-              }}
-            />
-            <div className="hidden w-48 h-48 flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
-              <span className="text-4xl mb-2">🖼️</span>
-              <span className="text-xs text-muted-foreground">Imagem indisponível</span>
-              {result.wiki_url && (
-                <a 
-                  href={result.wiki_url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline mt-1"
-                >
-                  Ver na Wiki
-                </a>
-              )}
-            </div>
+        {/* Image with custom upload option */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative">
+            {customImagePreview ? (
+              <img 
+                src={customImagePreview} 
+                alt={result.name}
+                className="w-48 h-48 object-contain rounded-lg bg-muted/50"
+              />
+            ) : result.image_url ? (
+              <>
+                <img 
+                  src={getBeybladeImageUrl(result.image_url, result.wiki_url) || ''} 
+                  alt={result.name}
+                  className="w-48 h-48 object-contain rounded-lg bg-muted/50"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling;
+                    if (fallback) fallback.classList.remove('hidden');
+                  }}
+                />
+                <div className="hidden w-48 h-48 flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+                  <span className="text-4xl mb-2">🖼️</span>
+                  <span className="text-xs text-muted-foreground">Imagem indisponível</span>
+                </div>
+              </>
+            ) : (
+              <div className="w-48 h-48 flex flex-col items-center justify-center rounded-lg bg-muted/50 text-center p-4">
+                <span className="text-4xl mb-2">🖼️</span>
+                <span className="text-xs text-muted-foreground">Sem imagem</span>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Custom image upload button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fileInputRef.current?.click()}
+            className="gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            {customImagePreview ? 'Trocar Foto' : 'Adicionar Foto'}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleCustomImageUpload}
+          />
+        </div>
 
         <div className="flex flex-wrap gap-2 text-sm">
           {result.series && (
