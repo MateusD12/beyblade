@@ -23,6 +23,7 @@ export default function Register() {
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [customImage, setCustomImage] = useState<string | null>(null);
   const [identifyResult, setIdentifyResult] = useState<IdentifyResponse | null>(null);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -112,10 +113,11 @@ export default function Register() {
     try {
       let photoUrl: string | null = null;
 
-      // Upload photo if captured
-      if (capturedImage) {
+      // Upload photo if captured or custom image provided
+      const imageToUpload = customImage || capturedImage;
+      if (imageToUpload) {
         const fileName = `${user.id}/${Date.now()}.jpg`;
-        const base64Data = capturedImage.split(",")[1];
+        const base64Data = imageToUpload.split(",")[1];
         const binaryData = atob(base64Data);
         const bytes = new Uint8Array(binaryData.length);
         for (let i = 0; i < binaryData.length; i++) {
@@ -252,11 +254,13 @@ export default function Register() {
     // If result came from camera, switch to search mode to correct
     if (capturedImage) {
       setIdentifyResult(null);
+      setCustomImage(null);
       setMode("search");
     } else {
       // Reset everything
       setMode("select");
       setCapturedImage(null);
+      setCustomImage(null);
       setIdentifyResult(null);
     }
   };
@@ -264,6 +268,7 @@ export default function Register() {
   const handleBack = () => {
     setMode("select");
     setCapturedImage(null);
+    setCustomImage(null);
     setIdentifyResult(null);
   };
 
@@ -316,6 +321,7 @@ export default function Register() {
               result={identifyResult}
               onConfirm={handleConfirm}
               onReject={handleReject}
+              onCustomImage={setCustomImage}
               isLoading={isSaving}
             />
             {capturedImage && (
