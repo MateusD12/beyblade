@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,13 +28,13 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Try to serve from storage cache first
-    const { data: cachedFile } = await supabase.storage
+    const cachedResult = await supabase.storage
       .from('beyblade-photos')
       .download(cacheKey);
 
-    if (cachedFile) {
+    if (cachedResult.data) {
       console.log(`Serving cached image for ${slug}`);
-      const arrayBuffer = await cachedFile.arrayBuffer();
+      const arrayBuffer = await cachedResult.data.arrayBuffer();
       return new Response(arrayBuffer, {
         headers: {
           ...corsHeaders,
@@ -102,9 +102,9 @@ serve(async (req) => {
         contentType,
         upsert: true,
       })
-      .then(({ error }) => {
-        if (error) {
-          console.error(`Failed to cache image: ${error.message}`);
+      .then((result: { error: unknown }) => {
+        if (result.error) {
+          console.error(`Failed to cache image:`, result.error);
         } else {
           console.log(`Cached image for ${slug}`);
         }

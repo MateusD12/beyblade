@@ -23,7 +23,10 @@ export function BeybladeCard({ beyblade, photoUrl, spinDirection, onClick }: Bey
         {(photoUrl || beyblade.image_url) ? (
           <>
             <img 
-              src={photoUrl || getBeybladeImageUrl(beyblade.image_url, beyblade.wiki_url) || ''} 
+              src={photoUrl || getBeybladeImageUrl(
+                beyblade.image_url, 
+                beyblade.wiki_url || (beyblade.name ? `https://beyblade.fandom.com/wiki/${beyblade.name.replace(/\s+/g, "_")}` : null)
+              ) || ''} 
               alt={beyblade.name}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               referrerPolicy="no-referrer"

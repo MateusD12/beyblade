@@ -157,7 +157,7 @@ export default function Register() {
       // Check if beyblade exists in catalog
       const { data: existingBeyblade } = await supabase
         .from("beyblade_catalog")
-        .select("id, image_url")
+        .select("id, image_url, wiki_url")
         .eq("name", identifyResult.name)
         .maybeSingle();
 
@@ -168,12 +168,15 @@ export default function Register() {
         
         // Only update image_url if we have a new one and the existing is null/empty
         const shouldUpdateImage = catalogImageUrl && !existingBeyblade.image_url;
+        // Only update wiki_url if we have a new one and the existing is null/empty
+        const shouldUpdateWikiUrl = identifyResult.wiki_url && !existingBeyblade.wiki_url;
         
         // Update existing record with new data
         const { error: updateError } = await supabase
           .from("beyblade_catalog")
           .update({
             image_url: shouldUpdateImage ? catalogImageUrl : existingBeyblade.image_url,
+            wiki_url: shouldUpdateWikiUrl ? identifyResult.wiki_url : existingBeyblade.wiki_url,
             description: identifyResult.description || undefined,
             specs: identifyResult.specs
               ? JSON.parse(JSON.stringify(identifyResult.specs))
@@ -212,6 +215,7 @@ export default function Register() {
                 : null,
               description: identifyResult.description,
               image_url: catalogImageUrl,
+              wiki_url: identifyResult.wiki_url || null,
             },
           ])
           .select("id")

@@ -28,6 +28,7 @@ export type Database = {
           specs: Json | null
           type: string
           updated_at: string
+          wiki_url: string | null
         }
         Insert: {
           components?: Json | null
@@ -42,6 +43,7 @@ export type Database = {
           specs?: Json | null
           type: string
           updated_at?: string
+          wiki_url?: string | null
         }
         Update: {
           components?: Json | null
@@ -56,6 +58,7 @@ export type Database = {
           specs?: Json | null
           type?: string
           updated_at?: string
+          wiki_url?: string | null
         }
         Relationships: []
       }

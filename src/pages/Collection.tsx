@@ -342,11 +342,14 @@ export default function Collection() {
       ));
   };
 
-  // Get the image to display
+  // Get the image to display with fallback wiki_url generation
   const getDisplayImage = (item: CollectionItem) => {
     if (item.photo_url) return item.photo_url;
     if (item.beyblade?.image_url) {
-      return getBeybladeImageUrl(item.beyblade.image_url, item.beyblade.wiki_url);
+      // Use wiki_url if available, otherwise generate fallback from name
+      const wikiUrl = item.beyblade.wiki_url || 
+        (item.beyblade.name ? `https://beyblade.fandom.com/wiki/${item.beyblade.name.replace(/\s+/g, "_")}` : null);
+      return getBeybladeImageUrl(item.beyblade.image_url, wikiUrl);
     }
     return null;
   };
