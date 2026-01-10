@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Search, Swords, Settings, Target, Loader2, Layers, Circle, Disc, Zap, Shield, Cog, CircleDot, ArrowUpDown, type LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getBeybladeImageUrl } from '@/lib/utils';
 import type { CollectionItem, BeybladeComponents } from '@/types/beyblade';
 
 interface ComponentData {
@@ -79,6 +79,7 @@ export default function Components() {
             id,
             name,
             image_url,
+            wiki_url,
             series,
             components
           )
@@ -135,10 +136,15 @@ export default function Components() {
         
         // Adicionar beyblade se ainda não estiver na lista
         if (!componentData.beyblades.find(b => b.id === item.beyblade!.id)) {
+          // Generate image URL with fallback wiki_url
+          const wikiUrl = (item.beyblade as any).wiki_url || 
+            (item.beyblade.name ? `https://beyblade.fandom.com/wiki/${item.beyblade.name.replace(/\s+/g, "_")}` : null);
+          const imageUrl = getBeybladeImageUrl(item.beyblade.image_url, wikiUrl);
+          
           componentData.beyblades.push({
             id: item.beyblade.id,
             name: item.beyblade.name,
-            imageUrl: item.beyblade.image_url || null,
+            imageUrl: imageUrl || null,
           });
         }
         componentData.count++;
