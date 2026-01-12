@@ -241,7 +241,7 @@ export default function Register() {
         description: `${identifyResult.name} foi adicionada à sua coleção.`,
       });
 
-      navigate("/collection");
+      navigate("/");
     } catch (error) {
       console.error("Error saving beyblade:", error);
       toast({
