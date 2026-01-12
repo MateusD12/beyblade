@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap, Camera } from 'lucide-react';
 import { getBeybladeImageUrl } from '@/lib/utils';
 import { getSeriesOrder, getGenerationOrder } from '@/lib/beybladeOrder';
+import { normalizeSeries, normalizeGeneration } from '@/lib/beybladeNormalization';
 import {
   Dialog,
   DialogContent,
@@ -221,33 +222,42 @@ export default function Collection() {
     }
   };
 
-  // Extract unique series from user's collection
+  // Extract unique series from user's collection (normalized)
   const availableSeries = useMemo(() => {
     const series = new Set(
       collection
-        .map(item => item.beyblade?.series)
+        .map(item => item.beyblade?.series ? normalizeSeries(item.beyblade.series) : null)
         .filter((s): s is string => Boolean(s))
     );
     return Array.from(series).sort((a, b) => getSeriesOrder(a) - getSeriesOrder(b));
   }, [collection]);
 
-  // Extract unique generations based on selected series
+  // Extract unique generations based on selected series (normalized)
   const availableGenerations = useMemo(() => {
     const generations = new Set(
       collection
-        .filter(item => filterSeries === 'all' || item.beyblade?.series === filterSeries)
-        .map(item => item.beyblade?.generation)
+        .filter(item => {
+          if (filterSeries === 'all') return true;
+          const normalizedSeries = item.beyblade?.series ? normalizeSeries(item.beyblade.series) : null;
+          return normalizedSeries === filterSeries;
+        })
+        .map(item => item.beyblade?.generation ? normalizeGeneration(item.beyblade.generation) : null)
         .filter((g): g is string => Boolean(g))
     );
     return Array.from(generations).sort((a, b) => getGenerationOrder(a) - getGenerationOrder(b));
   }, [collection, filterSeries]);
 
-  // Group and sort collection hierarchically
+  // Group and sort collection hierarchically using normalized names
   const groupedCollection = useMemo(() => {
     const filtered = collection.filter(item => {
       if (!item.beyblade) return false;
-      if (filterSeries !== 'all' && item.beyblade.series !== filterSeries) return false;
-      if (filterGeneration !== 'all' && item.beyblade.generation !== filterGeneration) return false;
+      
+      // Normalize series and generation for filtering
+      const normalizedSeries = normalizeSeries(item.beyblade.series);
+      const normalizedGeneration = normalizeGeneration(item.beyblade.generation);
+      
+      if (filterSeries !== 'all' && normalizedSeries !== filterSeries) return false;
+      if (filterGeneration !== 'all' && normalizedGeneration !== filterGeneration) return false;
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const nameMatch = item.beyblade.name.toLowerCase().includes(q);
@@ -257,12 +267,13 @@ export default function Collection() {
       return true;
     });
 
-    // Group by series
+    // Group by normalized series and generation
     const bySeries = new Map<string, Map<string, CollectionItem[]>>();
     
     for (const item of filtered) {
-      const series = item.beyblade!.series;
-      const gen = item.beyblade!.generation;
+      // Use normalized names for grouping
+      const series = normalizeSeries(item.beyblade!.series);
+      const gen = normalizeGeneration(item.beyblade!.generation);
       
       if (!bySeries.has(series)) bySeries.set(series, new Map());
       const byGen = bySeries.get(series)!;
