@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { IdentifyResponse } from "@/types/beyblade";
 import { Link } from "react-router-dom";
+import { normalizeSeries, normalizeGeneration } from "@/lib/beybladeNormalization";
 
 type Mode = "select" | "camera" | "search";
 
@@ -197,15 +198,15 @@ export default function Register() {
           });
         }
       } else {
-        // Add new beyblade to catalog
+        // Add new beyblade to catalog with normalized series/generation
         const { data: newBeyblade, error: catalogError } = await supabase
           .from("beyblade_catalog")
           .insert([
             {
               name: identifyResult.name!,
               name_hasbro: identifyResult.name_hasbro,
-              series: identifyResult.series!,
-              generation: identifyResult.generation!,
+              series: normalizeSeries(identifyResult.series!),
+              generation: normalizeGeneration(identifyResult.generation!),
               type: identifyResult.type!,
               components: componentsData
                 ? JSON.parse(JSON.stringify(componentsData))
