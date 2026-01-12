@@ -44,42 +44,58 @@
   }
 
   .dark {
-    --background: 220 25% 8%;
-    --foreground: 220 15% 95%;
-    --card: 220 25% 12%;
-    --card-foreground: 220 15% 95%;
-    --popover: 220 25% 12%;
-    --popover-foreground: 220 15% 95%;
-    --primary: 210 100% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 45 100% 55%;
-    --secondary-foreground: 220 25% 10%;
-    --muted: 220 20% 18%;
-    --muted-foreground: 220 15% 60%;
-    --accent: 270 70% 60%;
+    /* Deep purple/dark background inspired by beyblade.com */
+    --background: 270 50% 6%;
+    --foreground: 0 0% 100%;
+    
+    /* Cards with slightly lighter purple */
+    --card: 270 40% 10%;
+    --card-foreground: 0 0% 100%;
+    --popover: 270 40% 12%;
+    --popover-foreground: 0 0% 100%;
+    
+    /* Primary: Neon cyan */
+    --primary: 187 100% 50%;
+    --primary-foreground: 270 50% 6%;
+    
+    /* Secondary: Neon green */
+    --secondary: 110 100% 55%;
+    --secondary-foreground: 270 50% 6%;
+    
+    /* Muted: Medium purple */
+    --muted: 270 30% 15%;
+    --muted-foreground: 270 15% 65%;
+    
+    /* Accent: Magenta/Pink */
+    --accent: 300 100% 50%;
     --accent-foreground: 0 0% 100%;
+    
+    /* Destructive */
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 20% 20%;
-    --input: 220 20% 20%;
-    --ring: 210 100% 55%;
+    
+    /* Borders and inputs */
+    --border: 270 30% 20%;
+    --input: 270 30% 15%;
+    --ring: 187 100% 50%;
     
     /* Custom Beyblade theme colors - dark */
     --beyblade-attack: 0 85% 55%;
-    --beyblade-defense: 210 100% 55%;
+    --beyblade-defense: 187 100% 45%;
     --beyblade-stamina: 145 70% 50%;
-    --beyblade-balance: 280 70% 60%;
+    --beyblade-balance: 280 80% 60%;
     --beyblade-gold: 45 100% 55%;
-    --beyblade-silver: 220 10% 60%;
+    --beyblade-silver: 270 15% 60%;
     
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    /* Sidebar */
+    --sidebar-background: 270 50% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 187 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 270 40% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 270 30% 18%;
+    --sidebar-ring: 187 100% 50%;
   }
 }
 
@@ -145,13 +161,26 @@
 
 @keyframes pulse-glow {
   0%, 100% {
-    box-shadow: 0 0 20px hsl(210 100% 50% / 0.4);
+    box-shadow: 0 0 20px hsl(187 100% 50% / 0.4);
   }
   50% {
-    box-shadow: 0 0 40px hsl(210 100% 50% / 0.6);
+    box-shadow: 0 0 40px hsl(187 100% 50% / 0.6);
   }
 }
 
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Neon glow effects */
+.neon-cyan {
+  text-shadow: 0 0 10px hsl(187 100% 50% / 0.8), 0 0 20px hsl(187 100% 50% / 0.5);
+}
+
+.neon-green {
+  text-shadow: 0 0 10px hsl(110 100% 55% / 0.8), 0 0 20px hsl(110 100% 55% / 0.5);
+}
+
+.neon-magenta {
+  text-shadow: 0 0 10px hsl(300 100% 50% / 0.8), 0 0 20px hsl(300 100% 50% / 0.5);
 }
