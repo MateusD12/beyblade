@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { PlusCircle, BookOpen, BarChart3, User, LogOut, Layers } from 'lucide-react';
+import { PlusCircle, BookOpen, BarChart3, User, LogOut, Layers, Library } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 
 const navItems = [
   { href: '/', icon: BookOpen, label: 'Coleção' },
-  { href: '/components', icon: Layers, label: 'Componentes' },
+  { href: '/catalog', icon: Library, label: 'Catálogo' },
   { href: '/register', icon: PlusCircle, label: 'Registrar' },
   { href: '/stats', icon: BarChart3, label: 'Estatísticas' },
 ];

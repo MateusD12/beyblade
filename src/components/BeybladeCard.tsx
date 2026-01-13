@@ -16,7 +16,7 @@ export function BeybladeCard({ beyblade, photoUrl, spinDirection, onClick }: Bey
   
   return (
     <Card 
-      className="overflow-hidden transition-all duration-300 cursor-pointer group border shadow-sm hover:shadow-xl hover:border-primary/30 hover:-translate-y-1"
+      className="overflow-hidden transition-all duration-300 cursor-pointer group border shadow-sm hover:shadow-xl hover:border-primary/30 hover:-translate-y-1 hover:shadow-primary/10"
       onClick={onClick}
     >
       <div className="aspect-square relative overflow-hidden bg-gradient-to-br from-muted/50 via-muted/30 to-transparent">
