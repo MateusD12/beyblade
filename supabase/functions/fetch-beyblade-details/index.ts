@@ -206,7 +206,7 @@ Responda APENAS com um JSON válido:
   "name_hasbro": "Nome Hasbro se diferente, ou null",
   "series": "Série exata (Beyblade X / Beyblade Burst / Metal Fight Beyblade)",
   "generation": "Linha específica (Basic Line, QuadStrike, God, etc)",
-  "type": "Tipo: Ataque/Defesa/Resistência/Equilíbrio",
+  "type": "Tipo: Ataque/Defesa/Stamina/Equilíbrio",
   "components": {
     // APENAS os componentes que existem para esta série
     // Por exemplo, para Beyblade X: blade, ratchet, bit
@@ -226,10 +226,10 @@ Responda APENAS com um JSON válido:
 
 Categorias da wiki: ${categories.join(", ")}
 
-Dicas de tipo:
+REGRAS DE TRADUÇÃO DE TIPOS (OBRIGATÓRIO):
 - "Attack" → "Ataque"
 - "Defense" → "Defesa"
-- "Stamina" → "Resistência"  
+- "Stamina" → "Stamina" (NUNCA use "Resistência")
 - "Balance" → "Equilíbrio"
 
 TODAS as informações em português brasileiro. Não inclua campos com "Não aplicável".`;
@@ -280,7 +280,7 @@ TODAS as informações em português brasileiro. Não inclua campos com "Não ap
       let type = "Equilíbrio";
       if (categories.some((c: string) => c.toLowerCase().includes("attack"))) type = "Ataque";
       else if (categories.some((c: string) => c.toLowerCase().includes("defense"))) type = "Defesa";
-      else if (categories.some((c: string) => c.toLowerCase().includes("stamina"))) type = "Resistência";
+      else if (categories.some((c: string) => c.toLowerCase().includes("stamina"))) type = "Stamina";
       
       beyblade = {
         identified: true,

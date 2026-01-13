@@ -113,13 +113,15 @@ export type BeybladeType = 'Attack' | 'Defense' | 'Stamina' | 'Balance';
 export const BEYBLADE_TYPES: BeybladeType[] = ['Attack', 'Defense', 'Stamina', 'Balance'];
 
 export const TYPE_COLORS: Record<string, string> = {
-  // Português (banco de dados)
+  // Português (banco de dados) - tipos normalizados
   Ataque: 'type-attack',
   Defesa: 'type-defense',
   Stamina: 'type-stamina',
   Equilíbrio: 'type-balance',
-  // English fallback
+  // English fallback (para dados legados ou APIs externas)
   Attack: 'type-attack',
   Defense: 'type-defense',
   Balance: 'type-balance',
+  // Legacy fallback (dados antigos que usavam "Resistência")
+  Resistência: 'type-stamina',
 };

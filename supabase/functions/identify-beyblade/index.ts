@@ -22,7 +22,7 @@ serve(async (req) => {
       throw new Error("No image provided");
     }
 
-    const systemPrompt = `Você é um especialista em Beyblades. Analise a imagem e identifique a Beyblade mostrada.
+const systemPrompt = `Você é um especialista em Beyblades. Analise a imagem e identifique a Beyblade mostrada.
 
 IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto adicional:
 
@@ -30,15 +30,18 @@ IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto a
   "identified": true/false,
   "confidence": "high/medium/low",
   "name": "Nome oficial da Beyblade (Takara Tomy)",
-  "name_hasbro": "Nome da versão Hasbro (se houver)",
-  "series": "Nome da série (ex: Beyblade Burst, Metal Fight, etc)",
-  "generation": "Geração específica (ex: Burst GT, Dynamite Battle, Metal Fusion, etc)",
-  "type": "Tipo: Attack/Defense/Stamina/Balance",
+  "name_hasbro": "Nome da versão Hasbro (se diferente)",
+  "series": "Nome da série (Beyblade X / Beyblade Burst / Metal Fight Beyblade)",
+  "generation": "Geração específica (ex: Xtreme Gear, Dynamite Battle, Metal Fusion, etc)",
+  "type": "Tipo em português: Ataque / Defesa / Stamina / Equilíbrio",
   "components": {
-    "layer": "Nome do Layer/Blade",
-    "disk": "Nome do Disk/Ratchet", 
-    "driver": "Nome do Driver/Bit",
-    "extra": "Componentes extras se houver"
+    // APENAS componentes relevantes para a série detectada:
+    // Beyblade X: blade, ratchet, bit
+    // Burst: layer, disk, driver
+    // Metal Fight: face_bolt, energy_ring, fusion_wheel, spin_track, performance_tip
+    "descriptions": {
+      // Descrição de cada componente listado
+    }
   },
   "specs": {
     "weight": "Peso aproximado em gramas",
@@ -48,6 +51,20 @@ IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto a
   },
   "description": "Descrição breve sobre esta Beyblade, suas características e histórico",
   "error_message": "Mensagem de erro se não conseguir identificar"
+}
+
+REGRAS DE TRADUÇÃO DE TIPOS (OBRIGATÓRIO):
+- Attack → Ataque
+- Defense → Defesa
+- Stamina → Stamina (NUNCA use "Resistência")
+- Balance → Equilíbrio
+
+Se a imagem tiver baixa qualidade e não conseguir identificar com certeza, retorne:
+{
+  "identified": false,
+  "confidence": "low",
+  "suggestions": ["Possível Beyblade A", "Possível Beyblade B"],
+  "error_message": "Imagem com baixa qualidade. Considere tirar uma foto mais nítida."
 }
 
 Se não conseguir identificar a Beyblade ou se a imagem não mostrar uma Beyblade, retorne:

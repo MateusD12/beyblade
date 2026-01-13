@@ -5,8 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Target, Shield, Zap, Scale } from 'lucide-react';
+import { Target, Shield, Zap, Scale } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { StatsPageSkeleton } from '@/components/ui/stats-skeleton';
 
 interface Stats {
   total: number;
@@ -111,9 +112,7 @@ export default function Stats() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          </div>
+          <StatsPageSkeleton />
         ) : !stats || stats.total === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📊</div>
