@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCatalog } from '@/hooks/useCatalog';
+import { useCollection } from '@/hooks/useCollection';
 import { Beyblade } from '@/types/beyblade';
 import { BeybladeCard } from '@/components/BeybladeCard';
 import { BeybladeCardSkeletonGrid } from '@/components/ui/beyblade-card-skeleton';
@@ -10,56 +11,32 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Filter, Plus, ExternalLink, X } from 'lucide-react';
+import { Search, Filter, Plus, ExternalLink, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TypeBadge } from '@/components/TypeBadge';
 import { getBeybladeImageUrl } from '@/lib/utils';
 
 export default function Catalog() {
-  const [beyblades, setBeyblades] = useState<Beyblade[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeries, setSelectedSeries] = useState<string>('all');
   const [selectedGeneration, setSelectedGeneration] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedBeyblade, setSelectedBeyblade] = useState<Beyblade | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
   
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchCatalog();
-  }, []);
-
-  const fetchCatalog = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('beyblade_catalog')
-        .select('*')
-        .order('series', { ascending: true })
-        .order('generation', { ascending: true })
-        .order('name', { ascending: true });
-
-      if (error) throw error;
-      setBeyblades(data as Beyblade[] || []);
-    } catch (error) {
-      console.error('Error fetching catalog:', error);
-      toast.error('Erro ao carregar catálogo');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { catalog, isLoading } = useCatalog();
+  const { addToCollection, isAddingToCollection } = useCollection();
 
   const { availableSeries, availableGenerations, availableTypes } = useMemo(() => {
-    const series = [...new Set(beyblades.map(b => b.series))].sort();
-    const generations = [...new Set(beyblades.map(b => b.generation))].sort();
-    const types = [...new Set(beyblades.map(b => b.type))].sort();
+    const series = [...new Set(catalog.map(b => b.series))].sort();
+    const generations = [...new Set(catalog.map(b => b.generation))].sort();
+    const types = [...new Set(catalog.map(b => b.type))].sort();
     return { availableSeries: series, availableGenerations: generations, availableTypes: types };
-  }, [beyblades]);
+  }, [catalog]);
 
   const filteredBeyblades = useMemo(() => {
-    return beyblades.filter(b => {
+    return catalog.filter(b => {
       const matchesSearch = searchQuery === '' || 
         b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         b.name_hasbro?.toLowerCase().includes(searchQuery.toLowerCase());
@@ -68,7 +45,7 @@ export default function Catalog() {
       const matchesType = selectedType === 'all' || b.type === selectedType;
       return matchesSearch && matchesSeries && matchesGeneration && matchesType;
     });
-  }, [beyblades, searchQuery, selectedSeries, selectedGeneration, selectedType]);
+  }, [catalog, searchQuery, selectedSeries, selectedGeneration, selectedType]);
 
   const handleAddToCollection = async (beyblade: Beyblade) => {
     if (!user) {
@@ -77,37 +54,19 @@ export default function Catalog() {
       return;
     }
 
-    setIsAdding(true);
-    try {
-      // Check if already in collection
-      const { data: existing } = await supabase
-        .from('user_collection')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('beyblade_id', beyblade.id)
-        .maybeSingle();
-
-      if (existing) {
-        toast.info('Esta Beyblade já está na sua coleção');
-        return;
+    addToCollection(
+      { beybladeId: beyblade.id },
+      {
+        onSuccess: () => {
+          setSelectedBeyblade(null);
+        },
+        onError: (error: any) => {
+          if (error.message?.includes('duplicate') || error.code === '23505') {
+            toast.info('Esta Beyblade já está na sua coleção');
+          }
+        },
       }
-
-      const { error } = await supabase
-        .from('user_collection')
-        .insert({
-          user_id: user.id,
-          beyblade_id: beyblade.id,
-        });
-
-      if (error) throw error;
-      toast.success(`${beyblade.name} adicionada à coleção!`);
-      setSelectedBeyblade(null);
-    } catch (error) {
-      console.error('Error adding to collection:', error);
-      toast.error('Erro ao adicionar à coleção');
-    } finally {
-      setIsAdding(false);
-    }
+    );
   };
 
   const clearFilters = () => {
@@ -127,7 +86,7 @@ export default function Catalog() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Catálogo de Beyblades</h1>
           <p className="text-muted-foreground">
-            {beyblades.length} Beyblades cadastradas
+            {catalog.length} Beyblades cadastradas
           </p>
         </div>
 
@@ -190,7 +149,7 @@ export default function Catalog() {
 
           {hasActiveFilters && (
             <p className="text-sm text-muted-foreground">
-              Mostrando {filteredBeyblades.length} de {beyblades.length} Beyblades
+              Mostrando {filteredBeyblades.length} de {catalog.length} Beyblades
             </p>
           )}
         </div>
@@ -272,10 +231,19 @@ export default function Catalog() {
                   <Button 
                     className="flex-1"
                     onClick={() => handleAddToCollection(selectedBeyblade)}
-                    disabled={isAdding}
+                    disabled={isAddingToCollection}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {isAdding ? 'Adicionando...' : 'Adicionar à Coleção'}
+                    {isAddingToCollection ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Adicionando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar à Coleção
+                      </>
+                    )}
                   </Button>
                   
                   {selectedBeyblade.wiki_url && (
