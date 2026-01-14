@@ -1,16 +1,17 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Navigation } from '@/components/Navigation';
 import { BeybladeCard } from '@/components/BeybladeCard';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { CollectionItem, Beyblade, BeybladeComponents, BeybladeSpecs } from '@/types/beyblade';
+import { useCollection } from '@/hooks/useCollection';
+import { CollectionItem, BeybladeComponents, BeybladeSpecs } from '@/types/beyblade';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, PlusCircle, Trash2, Target, Shield, Zap, Camera } from 'lucide-react';
+import { Search, PlusCircle, Trash2, Target, Shield, Zap, Camera, Loader2 } from 'lucide-react';
 import { getBeybladeImageUrl } from '@/lib/utils';
 import { getSeriesOrder, getGenerationOrder } from '@/lib/beybladeOrder';
 import { normalizeSeries, normalizeGeneration } from '@/lib/beybladeNormalization';
+import { BeybladeCardSkeletonGrid } from '@/components/ui/beyblade-card-skeleton';
 import {
   Dialog,
   DialogContent,
@@ -42,183 +43,70 @@ import {
 } from '@/components/ui/accordion';
 import { TypeBadge } from '@/components/TypeBadge';
 import { SpinDirectionSelector, SpinDirection } from '@/components/SpinDirectionSelector';
-import { useToast } from '@/hooks/use-toast';
 
 export default function Collection() {
-  const [collection, setCollection] = useState<CollectionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterSeries, setFilterSeries] = useState<string>('all');
   const [filterGeneration, setFilterGeneration] = useState<string>('all');
   const [selectedItem, setSelectedItem] = useState<CollectionItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<CollectionItem | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    if (user) {
-      fetchCollection();
-    } else {
-      setIsLoading(false);
-    }
-  }, [user]);
+  
+  const {
+    collection,
+    isLoading,
+    deleteItem,
+    isDeleting,
+    updateSpinDirection,
+    updatePhoto,
+    isUploadingPhoto,
+  } = useCollection();
 
   // Reset generation filter when series changes
-  useEffect(() => {
+  const handleSeriesChange = (value: string) => {
+    setFilterSeries(value);
     setFilterGeneration('all');
-  }, [filterSeries]);
-
-  const fetchCollection = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_collection')
-        .select(`
-          *,
-          beyblade:beyblade_catalog(*)
-        `)
-        .eq('user_id', user!.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const transformedData: CollectionItem[] = (data || []).map(item => ({
-        ...item,
-        spin_direction: item.spin_direction as 'L' | 'R' | 'R/L' | null,
-        beyblade: item.beyblade ? {
-          ...item.beyblade,
-          components: item.beyblade.components as BeybladeComponents | null,
-          specs: item.beyblade.specs as BeybladeSpecs | null,
-        } : undefined,
-      }));
-      
-      setCollection(transformedData);
-    } catch (error) {
-      console.error('Error fetching collection:', error);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const handleDeleteFromCollection = async () => {
     if (!itemToDelete) return;
     
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('user_collection')
-        .delete()
-        .eq('id', itemToDelete.id);
-
-      if (error) throw error;
-
-      setCollection(prev => prev.filter(item => item.id !== itemToDelete.id));
-      setSelectedItem(null);
-      setItemToDelete(null);
-      
-      toast({
-        title: "Removido da coleção",
-        description: `${itemToDelete.beyblade?.name} foi removido da sua coleção.`,
-      });
-    } catch (error) {
-      console.error('Error deleting from collection:', error);
-      toast({
-        title: "Erro ao remover",
-        description: "Não foi possível remover da coleção. Tente novamente.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
+    deleteItem(itemToDelete.id, {
+      onSuccess: () => {
+        setSelectedItem(null);
+        setItemToDelete(null);
+      },
+    });
   };
 
-  const updateSpinDirection = async (collectionId: string, direction: SpinDirection) => {
-    try {
-      const { error } = await supabase
-        .from('user_collection')
-        .update({ spin_direction: direction })
-        .eq('id', collectionId);
-
-      if (error) throw error;
-
-      setCollection(prev => prev.map(item => 
-        item.id === collectionId 
-          ? { ...item, spin_direction: direction } 
-          : item
-      ));
-      
-      if (selectedItem?.id === collectionId) {
-        setSelectedItem(prev => prev ? { ...prev, spin_direction: direction } : null);
+  const handleSpinDirectionChange = (direction: SpinDirection) => {
+    if (!selectedItem) return;
+    updateSpinDirection(
+      { collectionId: selectedItem.id, direction },
+      {
+        onSuccess: () => {
+          setSelectedItem(prev => prev ? { ...prev, spin_direction: direction } : null);
+        },
       }
-      
-      toast({
-        title: "Direção atualizada",
-        description: `Direção de rotação alterada para ${direction}`,
-      });
-    } catch (error) {
-      console.error('Error updating spin direction:', error);
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível atualizar a direção de rotação.",
-        variant: "destructive",
-      });
-    }
+    );
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedItem) return;
     
-    setIsUploadingPhoto(true);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user!.id}/${selectedItem.id}_${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('beyblade-photos')
-        .upload(fileName, file, { upsert: true });
-      
-      if (uploadError) throw uploadError;
-      
-      const { data: urlData } = supabase.storage
-        .from('beyblade-photos')
-        .getPublicUrl(fileName);
-      
-      const { error: updateError } = await supabase
-        .from('user_collection')
-        .update({ photo_url: urlData.publicUrl })
-        .eq('id', selectedItem.id);
-      
-      if (updateError) throw updateError;
-      
-      setCollection(prev => prev.map(item => 
-        item.id === selectedItem.id 
-          ? { ...item, photo_url: urlData.publicUrl } 
-          : item
-      ));
-      setSelectedItem(prev => prev 
-        ? { ...prev, photo_url: urlData.publicUrl } 
-        : null
-      );
-      
-      toast({
-        title: "Foto atualizada",
-        description: "A foto foi alterada com sucesso!",
-      });
-    } catch (error) {
-      console.error('Error uploading photo:', error);
-      toast({
-        title: "Erro ao atualizar foto",
-        description: "Não foi possível fazer o upload da foto.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingPhoto(false);
-      if (photoInputRef.current) {
-        photoInputRef.current.value = '';
+    updatePhoto(
+      { collectionId: selectedItem.id, file },
+      {
+        onSuccess: ({ photoUrl }) => {
+          setSelectedItem(prev => prev ? { ...prev, photo_url: photoUrl } : null);
+        },
       }
+    );
+    
+    if (photoInputRef.current) {
+      photoInputRef.current.value = '';
     }
   };
 
@@ -252,7 +140,6 @@ export default function Collection() {
     const filtered = collection.filter(item => {
       if (!item.beyblade) return false;
       
-      // Normalize series and generation for filtering
       const normalizedSeries = normalizeSeries(item.beyblade.series);
       const normalizedGeneration = normalizeGeneration(item.beyblade.generation);
       
@@ -267,11 +154,9 @@ export default function Collection() {
       return true;
     });
 
-    // Group by normalized series and generation
     const bySeries = new Map<string, Map<string, CollectionItem[]>>();
     
     for (const item of filtered) {
-      // Use normalized names for grouping
       const series = normalizeSeries(item.beyblade!.series);
       const gen = normalizeGeneration(item.beyblade!.generation);
       
@@ -281,11 +166,9 @@ export default function Collection() {
       byGen.get(gen)!.push(item);
     }
 
-    // Sort by series (newest first)
     const sortedSeries = Array.from(bySeries.entries())
       .sort((a, b) => getSeriesOrder(a[0]) - getSeriesOrder(b[0]));
 
-    // Sort generations and beyblades within each series
     return sortedSeries.map(([series, genMap]) => ({
       series,
       generations: Array.from(genMap.entries())
@@ -299,7 +182,6 @@ export default function Collection() {
     }));
   }, [collection, filterSeries, filterGeneration, searchQuery]);
 
-  // Total filtered count
   const filteredCount = useMemo(() => {
     return groupedCollection.reduce(
       (acc, s) => acc + s.generations.reduce((gAcc, g) => gAcc + g.items.length, 0),
@@ -307,7 +189,6 @@ export default function Collection() {
     );
   }, [groupedCollection]);
 
-  // Mapeamento de labels para componentes dinâmicos
   const COMPONENT_LABELS: Record<string, string> = {
     blade: 'Lâmina',
     ratchet: 'Catraca',
@@ -328,7 +209,6 @@ export default function Collection() {
     spin_track: 'Trilho de Giro',
   };
 
-  // Renderizar componentes dinamicamente
   const renderDynamicComponents = (components: BeybladeComponents) => {
     const descriptions = (components as any)?.descriptions || {};
     
@@ -353,11 +233,9 @@ export default function Collection() {
       ));
   };
 
-  // Get the image to display with fallback wiki_url generation
   const getDisplayImage = (item: CollectionItem) => {
     if (item.photo_url) return item.photo_url;
     if (item.beyblade?.image_url) {
-      // Use wiki_url if available, otherwise generate fallback from name
       const wikiUrl = item.beyblade.wiki_url || 
         (item.beyblade.name ? `https://beyblade.fandom.com/wiki/${item.beyblade.name.replace(/\s+/g, "_")}` : null);
       return getBeybladeImageUrl(item.beyblade.image_url, wikiUrl);
@@ -417,7 +295,7 @@ export default function Collection() {
             />
           </div>
           
-          <Select value={filterSeries} onValueChange={setFilterSeries}>
+          <Select value={filterSeries} onValueChange={handleSeriesChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Série" />
             </SelectTrigger>
@@ -443,8 +321,15 @@ export default function Collection() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <div className="space-y-6">
+            <div className="rounded-xl overflow-hidden shadow-md bg-card p-5">
+              <div className="h-8 w-48 bg-muted animate-pulse rounded mb-4" />
+              <BeybladeCardSkeletonGrid count={4} />
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-md bg-card p-5">
+              <div className="h-8 w-36 bg-muted animate-pulse rounded mb-4" />
+              <BeybladeCardSkeletonGrid count={3} />
+            </div>
           </div>
         ) : groupedCollection.length === 0 ? (
           <div className="text-center py-12">
@@ -660,7 +545,7 @@ export default function Collection() {
                       {(selectedItem.beyblade.specs as BeybladeSpecs).stamina && (
                         <div className="flex items-center gap-1.5">
                           <Zap className="w-4 h-4 text-green-500" />
-                          <span>Resistência: {(selectedItem.beyblade.specs as BeybladeSpecs).stamina}</span>
+                          <span>Stamina: {(selectedItem.beyblade.specs as BeybladeSpecs).stamina}</span>
                         </div>
                       )}
                     </div>
@@ -670,7 +555,7 @@ export default function Collection() {
                 {/* Spin Direction */}
                 <SpinDirectionSelector
                   value={selectedItem.spin_direction}
-                  onChange={(direction) => updateSpinDirection(selectedItem.id, direction)}
+                  onChange={handleSpinDirectionChange}
                 />
 
                 {/* Delete Button */}
