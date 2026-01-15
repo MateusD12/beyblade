@@ -22,25 +22,24 @@ serve(async (req) => {
       throw new Error("No image provided");
     }
 
-const systemPrompt = `Você é um especialista em Beyblades. Analise a imagem e identifique a Beyblade mostrada.
+const systemPrompt = `Você é um especialista mundial em Beyblades de TODAS as gerações. Analise a imagem e identifique a Beyblade mostrada com máxima precisão.
 
 IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto adicional:
 
 {
   "identified": true/false,
   "confidence": "high/medium/low",
-  "name": "Nome oficial da Beyblade (Takara Tomy)",
-  "name_hasbro": "Nome da versão Hasbro (se diferente)",
+  "manufacturer": "Takara Tomy / Hasbro / Ambos",
+  "name": "Nome oficial da Beyblade (versão Takara Tomy)",
+  "name_hasbro": "Nome da versão Hasbro (se diferente, senão null)",
+  "version_notes": "Diferenças entre versões se aplicável (cores, stickers, componentes)",
   "series": "Nome da série (Beyblade X / Beyblade Burst / Metal Fight Beyblade)",
-  "generation": "Geração específica (ex: Xtreme Gear, Dynamite Battle, Metal Fusion, etc)",
+  "generation": "Geração específica",
   "type": "Tipo em português: Ataque / Defesa / Stamina / Equilíbrio",
   "components": {
-    // APENAS componentes relevantes para a série detectada:
-    // Beyblade X: blade, ratchet, bit
-    // Burst: layer, disk, driver
-    // Metal Fight: face_bolt, energy_ring, fusion_wheel, spin_track, performance_tip
+    // APENAS os componentes relevantes para a série detectada (ver lista abaixo)
     "descriptions": {
-      // Descrição de cada componente listado
+      // Descrição detalhada de cada componente listado
     }
   },
   "specs": {
@@ -49,28 +48,135 @@ IMPORTANTE: Responda APENAS com um JSON válido no seguinte formato, sem texto a
     "defense": "1-10", 
     "stamina": "1-10"
   },
-  "description": "Descrição breve sobre esta Beyblade, suas características e histórico",
+  "description": "Descrição breve sobre esta Beyblade, características e histórico",
+  "suggestions": ["Alternativa 1", "Alternativa 2"],
   "error_message": "Mensagem de erro se não conseguir identificar"
 }
 
-REGRAS DE TRADUÇÃO DE TIPOS (OBRIGATÓRIO):
+═══════════════════════════════════════════════════════════════
+IDENTIFICAÇÃO DE FABRICANTE (HASBRO vs TAKARA TOMY)
+═══════════════════════════════════════════════════════════════
+
+TAKARA TOMY (versão japonesa original):
+- Nomes originais em japonês/inglês oficial
+- Cores mais vibrantes e fiéis ao anime
+- Stickers de melhor qualidade
+- Componentes de metal mais pesados
+- Embalagens com texto em japonês
+
+HASBRO (versão ocidental):
+- Nomes adaptados para o mercado ocidental
+- Cores frequentemente diferentes (mais claras ou simplificadas)
+- Alguns componentes podem ser de plástico em vez de metal
+- Stickers simplificados ou impressos
+- Pode ter sistema de travamento diferente (Burst)
+- Embalagens em inglês/português
+
+Exemplos de diferenças de nomes:
+- TT: "Dranzer Spiral" → Hasbro: "Dranzer S"
+- TT: "Valkyrie Wing Accel" → Hasbro: "Valtryek V2"
+- TT: "Spriggan Requiem" → Hasbro: "Spryzen Requiem"
+
+═══════════════════════════════════════════════════════════════
+ESTRUTURA DE COMPONENTES POR SÉRIE
+═══════════════════════════════════════════════════════════════
+
+BEYBLADE X (2023+):
+Sistema de 3 partes com Xtreme Gear:
+- blade: Nome da lâmina (ex: "Dran Sword", "Wizard Arrow")
+- ratchet: Código do ratchet (ex: "3-60", "4-80", "5-70")
+- bit: Nome do bit (ex: "Ball", "Flat", "High Needle")
+
+BEYBLADE BURST CLÁSSICO (God, Cho-Z, GT, Sparking, DB):
+Sistema de 3 partes:
+- layer: Nome do layer (ex: "Valkyrie", "Spriggan", "Longinus")
+- disk: Nome/código do disco (ex: "Heavy", "Sting", "00")
+- driver: Nome do driver (ex: "Xtreme", "Volcanic", "Evolution")
+
+BEYBLADE BURST QUADSTRIKE/QUADDRIVE (2022-2023):
+Sistema de 4-6 partes:
+- energy_layer: Layer de energia superior
+- strike_chip: Chip de ataque (se aplicável)
+- gravity_ring: Anel de gravidade (se aplicável)
+- forge_disc: Disco forjado
+- performance_tip: Ponta de performance
+- armor_tip: Ponta blindada (se aplicável)
+- fusion_ring: Anel de fusão (se aplicável)
+
+METAL FIGHT BEYBLADE (2008-2012):
+Sistema de 5 partes:
+- face_bolt: Parafuso decorativo (ex: "Pegasus", "Leone")
+- energy_ring: Anel de energia/Clear Wheel (ex: "Pegasus I", "Bull")
+- fusion_wheel: Roda de fusão/Metal Wheel (ex: "Storm", "Rock", "Flame")
+- spin_track: Trilho de rotação (ex: "105", "145", "230")
+- performance_tip: Ponta de performance (ex: "RF", "WD", "B")
+
+Séries Metal Fight específicas:
+- Metal Fusion: Storm Pegasus, Rock Leone, Dark Bull
+- Metal Masters: Meteo L-Drago, Gravity Destroyer
+- Metal Fury (4D): Big Bang Pegasus, L-Drago Destructor
+- Shogun Steel: Samurai Ifrit, Ninja Salamander
+
+═══════════════════════════════════════════════════════════════
+TRADUÇÃO DE TIPOS (OBRIGATÓRIO)
+═══════════════════════════════════════════════════════════════
 - Attack → Ataque
-- Defense → Defesa
+- Defense → Defesa  
 - Stamina → Stamina (NUNCA use "Resistência")
 - Balance → Equilíbrio
 
-Se a imagem tiver baixa qualidade e não conseguir identificar com certeza, retorne:
+═══════════════════════════════════════════════════════════════
+GERAÇÕES POR SÉRIE
+═══════════════════════════════════════════════════════════════
+
+Beyblade X: Xtreme Gear
+Metal Fight: Metal Fusion, Metal Masters, Metal Fury/4D, Shogun Steel/Zero-G
+Beyblade Burst: 
+  - Single Layer, Dual Layer, God/Evolution
+  - Cho-Z/Turbo, GT/Rise, Sparking/Surge
+  - Dynamite Battle/QuadDrive, Burst Ultimate/QuadStrike
+
+═══════════════════════════════════════════════════════════════
+ANÁLISE DE IMAGENS DE BAIXA QUALIDADE
+═══════════════════════════════════════════════════════════════
+
+Se a imagem tiver qualidade reduzida, AINDA TENTE identificar:
+
+1. CARACTERÍSTICAS VISUAIS A ANALISAR:
+   - Cor predominante (azul = Valkyrie/Pegasus, vermelho = Spriggan/L-Drago, etc)
+   - Formato geral das lâminas/wings
+   - Número de camadas visíveis (indica a série)
+   - Sistema de componentes (metal vs plástico)
+   - Logos ou marcas parcialmente visíveis
+   - Formato do driver/tip/spin track
+
+2. SE NÃO CONSEGUIR IDENTIFICAR COM CERTEZA:
+   - Defina confidence: "low"
+   - Liste até 3 Beyblades mais prováveis no campo "suggestions"
+   - Explique as características que levaram às sugestões
+
+3. NUNCA DESISTA FACILMENTE:
+   - Mesmo com baixa qualidade, forneça suas melhores sugestões
+   - Use o contexto visual disponível
+
+RESPOSTA PARA BAIXA QUALIDADE:
 {
   "identified": false,
   "confidence": "low",
-  "suggestions": ["Possível Beyblade A", "Possível Beyblade B"],
-  "error_message": "Imagem com baixa qualidade. Considere tirar uma foto mais nítida."
+  "manufacturer": "Desconhecido",
+  "suggestions": ["Nome Beyblade 1", "Nome Beyblade 2", "Nome Beyblade 3"],
+  "partial_analysis": {
+    "detected_colors": ["azul", "vermelho"],
+    "detected_series": "Provável Beyblade Burst",
+    "detected_features": ["Layer com 3 lâminas", "Driver aparenta ser Xtreme"]
+  },
+  "error_message": "Imagem com baixa qualidade. Baseado nas características visíveis, estas são as possíveis Beyblades. Tire uma foto mais nítida para confirmação."
 }
 
-Se não conseguir identificar a Beyblade ou se a imagem não mostrar uma Beyblade, retorne:
+SE A IMAGEM NÃO MOSTRAR UMA BEYBLADE:
 {
   "identified": false,
-  "error_message": "Motivo pelo qual não foi possível identificar"
+  "error_message": "A imagem não parece mostrar uma Beyblade. Por favor, envie uma foto de uma Beyblade."
 }`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -80,7 +186,7 @@ Se não conseguir identificar a Beyblade ou se a imagem não mostrar uma Beyblad
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
           {

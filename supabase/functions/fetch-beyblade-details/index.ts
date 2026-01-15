@@ -172,12 +172,12 @@ IMPORTANTE: Cada série de Beyblade tem componentes DIFERENTES. Identifique a s�
 
 **Estrutura de componentes por série:**
 
-Beyblade X (sistema mais recente):
-- blade: Nome da Lâmina
+Beyblade X (sistema mais recente, 2023+):
+- blade: Nome da Lâmina (ex: Dran Sword, Wizard Arrow, Knight Shield)
 - ratchet: Catraca (ex: 3-60, 5-80, 4-70)  
 - bit: Ponteira (ex: Ball, Flat, GP, High Needle)
 
-Beyblade Burst (God, Cho-Z, GT, Sparking):
+Beyblade Burst Clássico (God, Cho-Z, GT, Sparking, DB):
 - layer: Camada de Energia
 - disk: Disco (ex: 0, 7, Blitz, Around)
 - driver: Driver (ex: Xtreme, Bearing, Destroy)
@@ -190,22 +190,30 @@ Beyblade Burst QuadStrike/QuadDrive (Hasbro):
 - performance_tip: Ponta de Desempenho (ex: Revolve-Q)
 - armor_tip: Ponta de Armadura (ex: Yard-6)
 
-Metal Fight Beyblade:
-- face_bolt: Parafuso Facial
-- energy_ring: Anel de Energia
-- fusion_wheel: Roda de Fusão
-- spin_track: Trilho de Giro
-- performance_tip: Ponta de Desempenho
+Metal Fight Beyblade (2008-2012):
+- face_bolt: Parafuso Facial (decorativo com símbolo)
+- energy_ring: Anel de Energia/Clear Wheel (anel de plástico colorido)
+- fusion_wheel: Roda de Fusão/Metal Wheel (anel metálico principal)
+- spin_track: Trilho de Giro (ex: 105, 145, 230)
+- performance_tip: Ponta de Desempenho (ex: RF, WD, B, HF)
+
+Gerações Metal Fight:
+- Metal Fusion: Storm Pegasus, Rock Leone, Dark Bull, Lightning L-Drago
+- Metal Masters: Meteo L-Drago, Gravity Destroyer, Ray Unicorno
+- Metal Fury/4D: Big Bang Pegasus, L-Drago Destructor, Phantom Orion
+- Shogun Steel/Zero-G: Samurai Ifrit, Ninja Salamander
 
 Responda APENAS com um JSON válido:
 
 {
   "identified": true,
   "confidence": "high",
+  "manufacturer": "Takara Tomy / Hasbro / Ambos",
   "name": "${pageTitle}",
   "name_hasbro": "Nome Hasbro se diferente, ou null",
+  "version_notes": "Diferenças entre versões Takara/Hasbro (cores, componentes, etc) ou null",
   "series": "Série exata (Beyblade X / Beyblade Burst / Metal Fight Beyblade)",
-  "generation": "Linha específica (Basic Line, QuadStrike, God, etc)",
+  "generation": "Linha específica (Xtreme Gear, QuadStrike, God, Metal Fusion, etc)",
   "type": "Tipo: Ataque/Defesa/Stamina/Equilíbrio",
   "components": {
     // APENAS os componentes que existem para esta série
@@ -231,6 +239,12 @@ REGRAS DE TRADUÇÃO DE TIPOS (OBRIGATÓRIO):
 - "Defense" → "Defesa"
 - "Stamina" → "Stamina" (NUNCA use "Resistência")
 - "Balance" → "Equilíbrio"
+
+IDENTIFICAÇÃO DE FABRICANTE:
+- Se foi lançada apenas no Japão: "Takara Tomy"
+- Se foi lançada apenas no ocidente: "Hasbro"
+- Se foi lançada em ambos mercados: "Ambos"
+- Versões Hasbro geralmente têm nomes diferentes (ex: Valkyrie → Valtryek)
 
 TODAS as informações em português brasileiro. Não inclua campos com "Não aplicável".`;
 
@@ -276,17 +290,38 @@ TODAS as informações em português brasileiro. Não inclua campos com "Não ap
       beyblade.image_url = finalImageUrl;
     } catch (parseError) {
       console.error("Failed to parse AI response:", content);
-      // Determine type from categories
+      // Determine type and series from categories
       let type = "Equilíbrio";
+      let series = "Beyblade";
+      let generation = "";
+      
       if (categories.some((c: string) => c.toLowerCase().includes("attack"))) type = "Ataque";
       else if (categories.some((c: string) => c.toLowerCase().includes("defense"))) type = "Defesa";
       else if (categories.some((c: string) => c.toLowerCase().includes("stamina"))) type = "Stamina";
       
+      if (categories.some((c: string) => c.toLowerCase().includes("beyblade x"))) {
+        series = "Beyblade X";
+        generation = "Xtreme Gear";
+      } else if (categories.some((c: string) => c.toLowerCase().includes("burst"))) {
+        series = "Beyblade Burst";
+      } else if (categories.some((c: string) => c.toLowerCase().includes("metal"))) {
+        series = "Metal Fight Beyblade";
+        if (categories.some((c: string) => c.toLowerCase().includes("4d") || c.toLowerCase().includes("fury"))) {
+          generation = "Metal Fury";
+        } else if (categories.some((c: string) => c.toLowerCase().includes("masters"))) {
+          generation = "Metal Masters";
+        } else {
+          generation = "Metal Fusion";
+        }
+      }
+      
       beyblade = {
         identified: true,
         confidence: "medium",
+        manufacturer: "Desconhecido",
         name: pageTitle,
-        series: "Beyblade",
+        series: series,
+        generation: generation,
         type: type,
         wiki_url: `https://beyblade.fandom.com/wiki/${slug}`,
         image_url: finalImageUrl,

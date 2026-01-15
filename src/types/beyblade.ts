@@ -93,9 +93,11 @@ export interface CollectionItem {
 
 export interface IdentifyResponse {
   identified: boolean;
-  confidence?: string;
+  confidence?: 'high' | 'medium' | 'low';
+  manufacturer?: 'Takara Tomy' | 'Hasbro' | 'Ambos' | 'Desconhecido';
   name?: string;
   name_hasbro?: string;
+  version_notes?: string;
   series?: string;
   generation?: string;
   type?: string;
@@ -105,6 +107,12 @@ export interface IdentifyResponse {
   description?: string;
   image_url?: string;
   wiki_url?: string;
+  suggestions?: string[];
+  partial_analysis?: {
+    detected_colors?: string[];
+    detected_series?: string;
+    detected_features?: string[];
+  };
   error_message?: string;
 }
 
