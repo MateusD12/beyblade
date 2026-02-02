@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Register from "./pages/Register";
 import Collection from "./pages/Collection";
 import Catalog from "./pages/Catalog";
+import CatalogAdmin from "./pages/CatalogAdmin";
 import Components from "./pages/Components";
 import Stats from "./pages/Stats";
 import NotFound from "./pages/NotFound";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/" element={<Collection />} />
             <Route path="/collection" element={<Navigate to="/" replace />} />
             <Route path="/catalog" element={<Catalog />} />
+            <Route path="/catalog/admin" element={<CatalogAdmin />} />
             <Route path="/components" element={<Components />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/register" element={<Register />} />
