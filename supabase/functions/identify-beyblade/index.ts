@@ -87,7 +87,7 @@ Sistema de 3 partes com Xtreme Gear:
 - ratchet: Código do ratchet (ex: "3-60", "4-80", "5-70")
 - bit: Nome do bit (ex: "Ball", "Flat", "High Needle")
 
-BEYBLADE BURST CLÁSSICO (God, Cho-Z, GT, Sparking, DB):
+BEYBLADE BURST (God, Cho-Z, GT, Sparking/Superking, Dynamite Battle):
 Sistema de 3 partes:
 - layer: Nome do layer (ex: "Valkyrie", "Spriggan", "Longinus")
 - disk: Nome/código do disco (ex: "Heavy", "Sting", "00")
@@ -129,12 +129,15 @@ TRADUÇÃO DE TIPOS (OBRIGATÓRIO)
 GERAÇÕES POR SÉRIE
 ═══════════════════════════════════════════════════════════════
 
-Beyblade X: Xtreme Gear
+Beyblade X: 
+  - Basic Line (BX) - linha inicial 2023
+  - UX System (UX) - sistema UX
+  - Xtreme Gear Sports (CX/XGS) - linha crossover/esportiva
 Metal Fight: Metal Fusion, Metal Masters, Metal Fury/4D, Shogun Steel/Zero-G
 Beyblade Burst: 
   - Single Layer, Dual Layer, God/Evolution
-  - Cho-Z/Turbo, GT/Rise, Sparking/Surge
-  - Dynamite Battle/QuadDrive, Burst Ultimate/QuadStrike
+  - Cho-Z/Turbo, GT/Rise, Sparking/Superking
+  - Dynamite Battle, QuadDrive, QuadStrike
 
 ═══════════════════════════════════════════════════════════════
 ANÁLISE DE IMAGENS DE BAIXA QUALIDADE

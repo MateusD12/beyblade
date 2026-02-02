@@ -177,7 +177,7 @@ Beyblade X (sistema mais recente, 2023+):
 - ratchet: Catraca (ex: 3-60, 5-80, 4-70)  
 - bit: Ponteira (ex: Ball, Flat, GP, High Needle)
 
-Beyblade Burst Clássico (God, Cho-Z, GT, Sparking, DB):
+Beyblade Burst (God, Cho-Z, GT, Sparking/Superking, Dynamite Battle):
 - layer: Camada de Energia
 - disk: Disco (ex: 0, 7, Blitz, Around)
 - driver: Driver (ex: Xtreme, Bearing, Destroy)

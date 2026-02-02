@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Filter, Plus, ExternalLink, X, Loader2 } from 'lucide-react';
+import { Search, Filter, Plus, ExternalLink, X, Loader2, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { TypeBadge } from '@/components/TypeBadge';
 import { getBeybladeImageUrl } from '@/lib/utils';
@@ -83,11 +83,19 @@ export default function Catalog() {
       <Navigation />
       
       <div className="max-w-7xl mx-auto p-4">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Catálogo de Beyblades</h1>
-          <p className="text-muted-foreground">
-            {catalog.length} Beyblades cadastradas
-          </p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Catálogo de Beyblades</h1>
+            <p className="text-muted-foreground">
+              {catalog.length} Beyblades cadastradas
+            </p>
+          </div>
+          {user && (
+            <Button variant="outline" size="sm" onClick={() => navigate('/catalog/admin')}>
+              <Settings className="w-4 h-4 mr-2" />
+              Gerenciar
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
