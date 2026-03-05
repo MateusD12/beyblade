@@ -128,6 +128,17 @@ export function normalizeGeneration(generation: string): string {
   return generation;
 }
 
+// Rótulos curtos para gerações do Beyblade X
+export const GENERATION_LABEL: Record<string, string> = {
+  'Basic Line': 'BX',
+  'UX System': 'UX',
+  'Xtreme Gear Sports': 'CX',
+};
+
+export function getGenerationLabel(generation: string): string {
+  return GENERATION_LABEL[generation] ?? generation;
+}
+
 /**
  * Normaliza tanto série quanto geração de uma vez
  */
