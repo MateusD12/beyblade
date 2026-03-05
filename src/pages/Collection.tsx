@@ -395,7 +395,7 @@ export default function Collection() {
                           <AccordionTrigger className="py-3 px-4 text-base font-semibold hover:no-underline hover:bg-muted/60 transition-colors">
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-primary" />
-                              <span>{generation}</span>
+                              <span>{getGenerationLabel(generation)}</span>
                               <span className="text-xs font-normal text-muted-foreground bg-background/80 px-2 py-0.5 rounded-full shadow-sm">
                                 {items.length}
                               </span>
