@@ -129,10 +129,12 @@ TRADUÇÃO DE TIPOS (OBRIGATÓRIO)
 GERAÇÕES POR SÉRIE
 ═══════════════════════════════════════════════════════════════
 
-Beyblade X: 
-  - Basic Line (BX) - linha inicial 2023
-  - UX System (UX) - sistema UX
-  - Xtreme Gear Sports (CX/XGS) - linha crossover/esportiva
+Beyblade X - REGRA OBRIGATÓRIA DE CLASSIFICAÇÃO:
+  - O código da bey SEMPRE começa com BX, UX ou CX
+  - BX-XX (ex: BX-01, BX-12) → geração: EXATAMENTE "Basic Line"
+  - UX-XX (ex: UX-01, UX-05) → geração: EXATAMENTE "UX System"
+  - CX-XX (ex: CX-01) → geração: EXATAMENTE "Xtreme Gear Sports"
+  - Se não houver código visível mas for claramente Beyblade X: use "Basic Line" como padrão
 Metal Fight: Metal Fusion, Metal Masters, Metal Fury/4D, Shogun Steel/Zero-G
 Beyblade Burst: 
   - Single Layer, Dual Layer, God/Evolution
