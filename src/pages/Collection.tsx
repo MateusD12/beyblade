@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Search, PlusCircle, Trash2, Target, Shield, Zap, Camera, Loader2 } from 'lucide-react';
 import { getBeybladeImageUrl } from '@/lib/utils';
 import { getSeriesOrder, getGenerationOrder } from '@/lib/beybladeOrder';
-import { normalizeSeries, normalizeGeneration } from '@/lib/beybladeNormalization';
+import { normalizeSeries, normalizeGeneration, getGenerationLabel } from '@/lib/beybladeNormalization';
 import { BeybladeCardSkeletonGrid } from '@/components/ui/beyblade-card-skeleton';
 import {
   Dialog,
