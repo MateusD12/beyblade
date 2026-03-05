@@ -213,7 +213,7 @@ Responda APENAS com um JSON válido:
   "name_hasbro": "Nome Hasbro se diferente, ou null",
   "version_notes": "Diferenças entre versões Takara/Hasbro (cores, componentes, etc) ou null",
   "series": "Série exata (Beyblade X / Beyblade Burst / Metal Fight Beyblade)",
-  "generation": "Linha específica (Xtreme Gear, QuadStrike, God, Metal Fusion, etc)",
+  "generation": "REGRA OBRIGATÓRIA para Beyblade X: identifique pelo prefixo do código da bey: BX-XX → use EXATAMENTE 'Basic Line'; UX-XX → use EXATAMENTE 'UX System'; CX-XX → use EXATAMENTE 'Xtreme Gear Sports'. Para outras séries: QuadStrike, God, Metal Fusion, etc",
   "type": "Tipo: Ataque/Defesa/Stamina/Equilíbrio",
   "components": {
     // APENAS os componentes que existem para esta série
@@ -301,7 +301,15 @@ TODAS as informações em português brasileiro. Não inclua campos com "Não ap
       
       if (categories.some((c: string) => c.toLowerCase().includes("beyblade x"))) {
         series = "Beyblade X";
-        generation = "Xtreme Gear";
+        // Detect generation by page title prefix
+        const titleUpper = pageTitle.toUpperCase();
+        if (titleUpper.includes(" UX") || titleUpper.startsWith("UX")) {
+          generation = "UX System";
+        } else if (titleUpper.includes(" CX") || titleUpper.startsWith("CX")) {
+          generation = "Xtreme Gear Sports";
+        } else {
+          generation = "Basic Line"; // BX default
+        }
       } else if (categories.some((c: string) => c.toLowerCase().includes("burst"))) {
         series = "Beyblade Burst";
       } else if (categories.some((c: string) => c.toLowerCase().includes("metal"))) {

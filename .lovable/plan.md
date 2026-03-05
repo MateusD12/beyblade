@@ -1,81 +1,198 @@
 
-## Problema Identificado
+# Plano: Corrigir Classificações e Adicionar Gerenciamento de Séries/Gerações
 
-Dois pontos causam a classificação incorreta das Beyblades da linha BX:
+## Resumo do Problema
 
-**1. Prompt ambíguo no `fetch-beyblade-details`:**
-- Linha 216: o exemplo no JSON template diz `"Linha específica (Xtreme Gear, QuadStrike..."` — usa "Xtreme Gear" como exemplo padrão, induzindo a IA a escolhê-lo mesmo para beys BX.
-- Falta instrução explícita sobre como determinar BX vs UX vs CX a partir das categorias da wiki.
+Foram identificados vários problemas de classificação das Beyblades:
 
-**2. Fallback hardcodado (linha 304):**
-```typescript
-// Atual — classifica TUDO de Beyblade X como "Xtreme Gear"
-generation = "Xtreme Gear";
-```
-
-**3. Prompt do `identify-beyblade`:**
-- As gerações do Beyblade X são listadas de forma correta, mas o exemplo no campo `generation` não reforça que BX deve retornar exatamente "Basic Line".
+1. **Séries duplicadas:** "Beyblade Burst Clássico" aparece separada de "Beyblade Burst"
+2. **Gerações duplicadas:** "Basic_Line" vs "Basic Line" (com underscore)
+3. **Gerações incorretas para Beyblade X:** PerseusDark e WizardArc estão em "Xtreme Gear Sports" mas segundo o usuário deveriam estar em outra geração
 
 ---
 
-## Plano de Correção
+## Parte 1: Correção Imediata dos Dados
 
-### 1. Atualizar `fetch-beyblade-details/index.ts`
+### 1.1 Migração SQL para Corrigir Dados Existentes
 
-**Prompt** (linha 216): substituir o exemplo vago por instruções explícitas:
-```
-"generation": "Para Beyblade X: use EXATAMENTE 'Basic Line' (BX), 'UX System' (UX) ou 'Xtreme Gear Sports' (CX/XGS). Identifique pelo prefixo do código: BX = Basic Line, UX = UX System, CX = Xtreme Gear Sports"
-```
+Executar SQL para normalizar os dados inconsistentes:
 
-**Fallback** (linhas 302-304): adicionar lógica para detectar a geração pelo nome da bey:
-```typescript
-if (categories.some((c) => c.toLowerCase().includes("beyblade x"))) {
-  series = "Beyblade X";
-  // Detect by page title prefix
-  const titleUpper = pageTitle.toUpperCase();
-  if (titleUpper.includes(' UX') || titleUpper.startsWith('UX')) {
-    generation = "UX System";
-  } else if (titleUpper.includes(' CX') || titleUpper.startsWith('CX')) {
-    generation = "Xtreme Gear Sports";
-  } else {
-    generation = "Basic Line"; // BX default
-  }
-}
-```
-
-### 2. Atualizar `identify-beyblade/index.ts`
-
-Adicionar instrução clara na seção de gerações (linha ~132):
-```
-Beyblade X - REGRA DE CLASSIFICAÇÃO:
-  - O código da bey SEMPRE começa com BX, UX ou CX
-  - BX-XX → geração: "Basic Line"
-  - UX-XX → geração: "UX System"  
-  - CX-XX → geração: "Xtreme Gear Sports"
-  - Se não tiver código visível, use "Basic Line" como padrão para Beyblade X
-```
-
-### 3. Corrigir dados existentes no banco
-
-SQL para corrigir as beys que já entraram com classificação errada:
 ```sql
--- Corrigir geração genérica "Beyblade X" → "Basic Line"
+-- Corrigir série "Beyblade Burst Clássico" → "Beyblade Burst"
+UPDATE beyblade_catalog 
+SET series = 'Beyblade Burst' 
+WHERE series = 'Beyblade Burst Clássico';
+
+-- Corrigir geração "Basic_Line" → "Basic Line"
 UPDATE beyblade_catalog 
 SET generation = 'Basic Line' 
-WHERE series = 'Beyblade X' AND generation = 'Beyblade X';
+WHERE generation = 'Basic_Line';
 
--- Corrigir "Xtreme Gear" (sem "Sports") → "Xtreme Gear Sports"
-UPDATE beyblade_catalog 
-SET generation = 'Xtreme Gear Sports' 
-WHERE series = 'Beyblade X' AND generation = 'Xtreme Gear';
+-- Adicionar geração UX System se não existir no mapeamento
+-- (CX não parece ser uma geração oficial, verificar se é UX)
+```
+
+### 1.2 Atualizar Edge Functions
+
+Remover referências a "Beyblade Burst Clássico" dos prompts:
+
+| Arquivo | Alteração |
+|---------|-----------|
+| `fetch-beyblade-details/index.ts` | Substituir "Beyblade Burst Clássico" por "Beyblade Burst" |
+| `identify-beyblade/index.ts` | Mesma correção |
+
+---
+
+## Parte 2: Atualizar Gerações do Beyblade X
+
+### 2.1 Gerações Oficiais do Beyblade X
+
+Segundo informações oficiais, as gerações são:
+
+| Código | Nome Completo | Descrição |
+|--------|---------------|-----------|
+| BX | Basic Line | Linha básica inicial (2023) |
+| UX | UX System | Sistema UX (novo formato) |
+| CX | Xtreme Gear Sports | Linha "Collab/Crossover" ou edições especiais |
+
+### 2.2 Atualizar Normalização
+
+Adicionar ao `beybladeNormalization.ts`:
+
+```typescript
+// Beyblade X - novas gerações
+'CX': 'Xtreme Gear Sports',  // CX são edições crossover/especiais
+'CX System': 'Xtreme Gear Sports',
+'XGS': 'Xtreme Gear Sports',
+'Xtreme Gear Sports': 'Xtreme Gear Sports',
+```
+
+### 2.3 Atualizar Ordem
+
+Adicionar ao `beybladeOrder.ts`:
+
+```typescript
+// Beyblade X (mais novo primeiro)
+'Xtreme Gear Sports': 1,  // XGS/CX - mais recente
+'UX System': 2,           // UX
+'Basic Line': 3,          // BX - primeiro
 ```
 
 ---
 
-## Arquivos a Modificar
+## Parte 3: Interface de Gerenciamento de Séries/Gerações
 
-| Arquivo | Mudança |
-|---------|---------|
-| `supabase/functions/fetch-beyblade-details/index.ts` | Corrigir prompt e fallback de geração BX/UX/CX |
-| `supabase/functions/identify-beyblade/index.ts` | Adicionar regra explícita de prefixo BX/UX/CX |
-| Banco de dados (migration) | Corrigir registros já salvos incorretamente |
+### 3.1 Nova Página de Administração
+
+Criar `/admin/catalog` com funcionalidades:
+
+1. **Visualizar Séries/Gerações:**
+   - Lista de todas as séries únicas
+   - Lista de gerações por série
+   - Contagem de Beyblades em cada
+
+2. **Editar Série/Geração:**
+   - Renomear série (atualiza todas as Beyblades)
+   - Renomear geração (atualiza todas da série)
+   - Mesclar séries/gerações duplicadas
+
+3. **Remanejar Beyblade:**
+   - Selecionar Beyblade individual
+   - Alterar série e/ou geração
+   - Confirmação antes de salvar
+
+### 3.2 Componentes a Criar
+
+| Componente | Descrição |
+|------------|-----------|
+| `CatalogAdmin.tsx` | Página principal de administração |
+| `SeriesManager.tsx` | Gerenciamento de séries |
+| `GenerationManager.tsx` | Gerenciamento de gerações por série |
+| `BeybladeReassign.tsx` | Modal para remanejar Beyblade |
+
+### 3.3 Fluxo da Interface
+
+```text
+┌─────────────────────────────────────────────────────────┐
+│                 Gerenciar Catálogo                      │
+├─────────────────────────────────────────────────────────┤
+│  [Séries] [Gerações] [Beyblades]                        │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Beyblade X                           [Editar]   │    │
+│  │   • Xtreme Gear Sports (5)           [Editar]   │    │
+│  │   • Basic Line (5)                   [Editar]   │    │
+│  │   • UX System (0)                    [Editar]   │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │ Beyblade Burst                       [Editar]   │    │
+│  │   • SpeedStorm (4)                   [Editar]   │    │
+│  │   • QuadStrike (2)                   [Editar]   │    │
+│  │   • GT (2)                           [Editar]   │    │
+│  │   • Superking (1)                    [Editar]   │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                          │
+│  [+ Criar Nova Série] [+ Criar Nova Geração]            │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Parte 4: Funcionalidade de Remanejar Beyblade
+
+### 4.1 Na Página de Catálogo
+
+Adicionar botão "Editar Classificação" no modal de detalhes:
+
+- Dropdown para selecionar nova série
+- Dropdown para selecionar nova geração (filtrado pela série)
+- Botão salvar com confirmação
+
+### 4.2 Bulk Actions
+
+Na página de administração, permitir:
+
+- Selecionar múltiplas Beyblades
+- Mover todas para nova série/geração
+- Útil para correções em lote
+
+---
+
+## Arquivos a Modificar/Criar
+
+| Arquivo | Ação |
+|---------|------|
+| `supabase/migrations/xxx.sql` | Corrigir dados existentes |
+| `supabase/functions/identify-beyblade/index.ts` | Remover "Burst Clássico" |
+| `supabase/functions/fetch-beyblade-details/index.ts` | Remover "Burst Clássico" |
+| `src/lib/beybladeNormalization.ts` | Adicionar aliases CX/XGS |
+| `src/lib/beybladeOrder.ts` | Confirmar ordem correta |
+| `src/pages/CatalogAdmin.tsx` | Nova página de administração |
+| `src/pages/Catalog.tsx` | Adicionar botão de edição |
+| `src/components/EditBeybladeClassification.tsx` | Modal de edição |
+| `src/App.tsx` | Adicionar rota /admin/catalog |
+
+---
+
+## Ordem de Implementação
+
+1. **Imediato:** Migração SQL para corrigir dados existentes
+2. **Depois:** Atualizar edge functions (remover "Burst Clássico")
+3. **Em seguida:** Criar interface de gerenciamento
+4. **Por último:** Adicionar funcionalidade de remanejar
+
+---
+
+## Perguntas para o Usuário
+
+Antes de implementar, preciso confirmar:
+
+1. **PerseusDark B6-80W e WizardArc R4-55LO:** Qual é a geração correta? 
+   - São "UX System"? 
+   - São "Xtreme Gear Sports" mesmo?
+   - São de outra geração específica?
+
+2. **O que é "CX"?** Você mencionou CX - é uma geração oficial ou você quis dizer "UX"?
+
+3. **Permissões:** A página de administração deve ser acessível a todos os usuários logados ou apenas administradores?
