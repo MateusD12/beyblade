@@ -276,12 +276,20 @@ export default function Collection() {
             </p>
           </div>
           
-          <Link to="/register">
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {collection.length > 0 && (
+              <Button variant="outline" onClick={() => exportCollectionToExcel(collection)}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            )}
+            <Link to="/register">
+              <Button>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Adicionar
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}
