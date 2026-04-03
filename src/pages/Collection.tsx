@@ -7,7 +7,8 @@ import { useCollection } from '@/hooks/useCollection';
 import { CollectionItem, BeybladeComponents, BeybladeSpecs } from '@/types/beyblade';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, PlusCircle, Trash2, Target, Shield, Zap, Camera, Loader2 } from 'lucide-react';
+import { Search, PlusCircle, Trash2, Target, Shield, Zap, Camera, Loader2, Download } from 'lucide-react';
+import { exportCollectionToExcel } from '@/lib/exportCollection';
 import { getBeybladeImageUrl } from '@/lib/utils';
 import { getSeriesOrder, getGenerationOrder } from '@/lib/beybladeOrder';
 import { normalizeSeries, normalizeGeneration, getGenerationLabel } from '@/lib/beybladeNormalization';
@@ -275,12 +276,20 @@ export default function Collection() {
             </p>
           </div>
           
-          <Link to="/register">
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            {collection.length > 0 && (
+              <Button variant="outline" onClick={() => exportCollectionToExcel(collection)}>
+                <Download className="w-4 h-4 mr-2" />
+                Exportar Excel
+              </Button>
+            )}
+            <Link to="/register">
+              <Button>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Adicionar
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}
